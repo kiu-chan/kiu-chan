@@ -3,6 +3,7 @@
    <strong> Hey there,I'm Khanh</strong> 
  <p align="center">
 
+      <h4> Visitors :</h4> <img src="https://visitor-count-b8lb.vercel.app/api/kiu-chan?hexColor=5ed4f3" />
    </p>
 </h1>
 <div> <div>
@@ -30,3 +31,13 @@
 <p>
   <img src="https://skillicons.dev/icons?i=anaconda,androidstudio,aws,c,cpp,css,dart,figma,firebase,flutter,git,github,gradle,html,idea,java,js,laravel,latex,linux,maven,mongodb,mysql,nodejs,npm,ps,postgres,postman,py,react,vscode" />
 </p>
+
+
+  [![Ashutosh's github activity graph](https://github-readme-activity-graph.vercel.app/graph?username=kiu-chan&theme=react)](https://github.com/ashutosh00710/github-readme-activity-graph)
+
+<details open>
+  <summary> <b>Stats</b>: </summary>
+<a href='https://git.io/streak-stats' align="center" width="100%">
+    <img style='width:100%;' src='https://github-readme-streak-stats-mbm.vercel.app/?user=kiu-chan&hide_border=true&date_format=j%20M%5B%20Y%5D&stroke=44C394&sideLabels=888888&background=FFFFFF00&ring=44C394&fire=44C394&currStreakNum=888888&sideNums=888888&currStreakLabel=44C394&dates=888888' />
+</a><a href='https://github.com/anuraghazra/github-readme-stats' align="center" width="100%">
+</details>
