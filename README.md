@@ -1,16 +1,33 @@
-## Hi there 👋
+<h1 align="center">
+ <img src="https://raw.githubusercontent.com/iampavangandhi/iampavangandhi/master/gifs/Hi.gif" width="30px" height="50px">
+   <strong> Hey there,I'm Khanh</strong> 
+ <p align="center">
+  <img src="https://github-readme-quotes-2o3w.vercel.app/api?type=horizontal&theme=github" />
 
-<!--
-**kiu-chan/kiu-chan** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+   </p>
+</h1>
+<div> <div>
 
-Here are some ideas to get you started:
+<h3 align="center">I am a passionate software engineer at the GIS research center</h3>
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+- 🎓 I am about to graduate with a bachelor's degree in Information Technology from VNU University of Engineering and Technology - Vietnam National University, Hanoi
+- I am currently working as a cross-platform mobile application developer at the GIS Research Center - Thai Nguyen University of Agriculture and Forestry
+
+- 👯 I’m looking to collaborate on **new projects**
+
+- 📫 How to reach me **khanhk66uet@gmail.com**
+
+
+
+## 💎 My Values
+
+
+💡 Mindset of Learning ,Curiosity & Digging up <br/>
+🙌 Teamwork & Communication & Leadership<br/>
+🙋‍♂️ Autonomous <br/>
+🕺 & More to discover ...
+
+<h3 align="left">Languages ,Tools and DB:</h3> 
+<p>
+  <img src="https://skillicons.dev/icons?i=anaconda,androidstudio,aws,c,cpp,css,dart,figma,firebase,flutter,git,github,gradle,html,idea,java,js,laravel,latex,linux,maven,mongodb,mysql,nodejs,npm,ps,postgres,postman,py,react,vscode" />
+</p>
