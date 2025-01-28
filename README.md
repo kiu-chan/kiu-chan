@@ -10,7 +10,7 @@
 
 <h3 align="center">I am a passionate software engineer at the GIS research center</h3>
 
-- 🎓 I am about to graduate with a bachelor's degree in Information Technology from VNU University of Engineering and Technology - Vietnam National University, Hanoi
+- 🎓 I am about to graduate with a bachelor's degree in Information Technology from [VNU University of Engineering and Technology - Vietnam National University, Hanoi](https://uet.vnu.edu.vn/)
 - I am currently working as a cross-platform mobile application developer at the GIS Research Center - Thai Nguyen University of Agriculture and Forestry
 
 - 👯 I’m looking to collaborate on **new projects**
