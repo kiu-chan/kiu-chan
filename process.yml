@@ -1,0 +1,7 @@
+apps:
+  - name: kiu-chan
+    cwd: /home/ubuntu/code/web/kiu-chan
+    script: npm
+    args: "run dev"
+    env:
+      NODE_ENV: development
