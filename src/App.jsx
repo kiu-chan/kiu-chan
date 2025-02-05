@@ -1,14 +1,25 @@
-import React from 'react'
-import Portfolio from './components/Portfolio'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { publicRoutes } from './routes';
 
 function App() {
   return (
-    <>
-      <main>
-        <Portfolio />
-      </main>
-    </>
-  )
+    <BrowserRouter>
+      <div>
+        <Routes>
+          {publicRoutes.map((route, index) => {
+            const Page = route.component;
+            return (
+              <Route
+                key={index}
+                path={route.path}
+                element={<Page />}
+              />
+            );
+          })}
+        </Routes>
+      </div>
+    </BrowserRouter>
+  );
 }
 
 export default App;
