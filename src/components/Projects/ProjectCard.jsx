@@ -10,22 +10,29 @@ const ProjectCard = ({ project }) => {
     >
       <div className="relative">
         <img 
-          src={project.image || `${process.env.SERVER_URL}/api/placeholder/400/200`} 
+          src={project.image} 
           alt={project.title}
-          className="w-full h-48 object-cover"
+          className="w-full h-64 md:h-72 object-cover object-center"
+          onError={(e) => {
+            e.target.src = '/api/placeholder/400/320';
+          }}
         />
-        <div className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-bl-lg">
+        <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-lg shadow-md">
           {project.type}
         </div>
       </div>
       
       <div className="p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">{project.title}</h3>
-        <p className="text-gray-600 mb-4">{project.description}</p>
+        <h3 className="text-xl font-semibold text-gray-800 mb-2 line-clamp-1">
+          {project.title}
+        </h3>
+        <p className="text-gray-600 mb-4 line-clamp-2">
+          {project.description}
+        </p>
         
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            {project.technologies.map((tech, index) => (
+            {project.technologies.slice(0, 3).map((tech, index) => (
               <span 
                 key={index}
                 className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm"
@@ -33,6 +40,11 @@ const ProjectCard = ({ project }) => {
                 {tech}
               </span>
             ))}
+            {project.technologies.length > 3 && (
+              <span className="text-gray-500 text-sm">
+                +{project.technologies.length - 3}
+              </span>
+            )}
           </div>
           
           <div className="flex justify-between items-center pt-4 border-t">
