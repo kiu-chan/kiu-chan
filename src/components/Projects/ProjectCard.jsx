@@ -10,7 +10,7 @@ const ProjectCard = ({ project }) => {
     >
       <div className="relative">
         <img 
-          src={project.image || "/api/placeholder/400/200"} 
+          src={project.image || `${process.env.SERVER_URL}/api/placeholder/400/200`} 
           alt={project.title}
           className="w-full h-48 object-cover"
         />
