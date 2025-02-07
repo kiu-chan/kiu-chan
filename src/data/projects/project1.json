@@ -3,7 +3,7 @@
     "title": "Econom Taxi App",
     "description": "A taxi booking application built with Flutter that enables cost-effective rides within and between cities. The app serves both drivers and passengers with an intuitive interface.",
     "type": "Mobile App",
-    "image": "/api/placeholder/400/200",
+    "image": "src/assets/projects/taxi/home.png",
     "technologies": [
       "Flutter",
       "Dart", 
