@@ -82,7 +82,7 @@ const RequestForm = ({ projectTitle }) => {
               Submit a Request for {projectTitle}
             </h2>
             <p className="text-gray-600 mt-2">
-              Please fill out the form below and we'll get back to you within 30 days.
+              Please fill out the form below
             </p>
           </div>
 
