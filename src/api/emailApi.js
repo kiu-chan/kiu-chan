@@ -1,11 +1,20 @@
-import axios from 'axios';
-
-const BASE_URL = process.env.SERVER_URL || 'http://localhost:3001'; // URL của backend server
+const BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
 export const sendConfirmationEmail = async (data) => {
   try {
-    const response = await axios.post(`${BASE_URL}/api/send-confirmation`, data);
-    return response.data;
+    const response = await fetch(`${BASE_URL}/api/send-confirmation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    
+    return await response.json();
   } catch (error) {
     throw error;
   }

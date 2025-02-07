@@ -1,32 +1,11 @@
 import React, { useState } from 'react';
 import ProjectCard from '../../components/Projects/ProjectCard';
+import project1 from '../../data/projects/project1.json';
 
 const Projects = () => {
   const [filter, setFilter] = useState('all');
   
-  const projects = [
-    {
-      id: "gis-mobile",
-      title: "GIS Mobile Application",
-      description: "A cross-platform mobile application that enables users to collect and analyze geographic data.",
-      type: "Mobile App",
-      image: "/api/placeholder/400/200",
-      technologies: ["Flutter", "Firebase", "GIS", "Node.js"],
-      githubUrl: "https://github.com/kiu-chan/gis-mobile",
-      year: "2024"
-    },
-    {
-      id: "portfolio",
-      title: "Portfolio Website",
-      description: "Personal portfolio website built with React and Tailwind CSS.",
-      type: "Web App",
-      image: "/api/placeholder/400/200",
-      technologies: ["React", "Tailwind CSS", "JavaScript"],
-      githubUrl: "https://github.com/kiu-chan/portfolio",
-      liveUrl: "https://kiu-chan.vercel.app",
-      year: "2024"
-    }
-  ];
+  const projects = [project1];
 
   const projectTypes = ['all', 'Mobile App', 'Web App', 'Desktop App'];
   

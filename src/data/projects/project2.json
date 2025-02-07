@@ -1,0 +1,24 @@
+{
+    "id": "econom-taxi",
+    "title": "Econom Taxi App",
+    "description": "A taxi booking application built with Flutter that enables cost-effective rides within and between cities. The app serves both drivers and passengers with an intuitive interface.",
+    "type": "Mobile App",
+    "image": "/api/placeholder/400/200",
+    "technologies": [
+      "Flutter",
+      "Dart", 
+      "Firebase",
+      "Google Maps API"
+    ],
+    "githubUrl": "https://github.com/your-username/econom-taxi",
+    "liveUrl": "https://play.google.com/store/apps/details?id=com.your.economtaxi",
+    "year": "2024",
+    "features": [
+      "Real-time location tracking and route optimization",
+      "In-app chat between drivers and passengers", 
+      "Multiple payment methods integration",
+      "Driver status management and booking system",
+      "Push notifications for ride updates"
+    ],
+    "challenges": "Implementing real-time location tracking while optimizing battery consumption was a major challenge. This was resolved by using efficient geolocation algorithms and Firebase Cloud Messaging for updates."
+  }

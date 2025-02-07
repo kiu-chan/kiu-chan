@@ -1,55 +1,28 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Github, Globe } from 'lucide-react';
+import project1 from '../../data/projects/project1.json';
 
 const ProjectDetail = () => {
   const { id } = useParams();
-
-  // Mock data - in real app, you should fetch this from your data source
-  const projects = [
-    {
-      id: "gis-mobile",
-      title: "GIS Mobile Application",
-      description: "A cross-platform mobile application that enables users to collect and analyze geographic data.",
-      type: "Mobile App",
-      image: "/api/placeholder/800/400",
-      technologies: ["Flutter", "Firebase", "GIS", "Node.js"],
-      githubUrl: "https://github.com/kiu-chan/gis-mobile",
-      year: "2024",
-      features: [
-        "Real-time GPS tracking and data collection",
-        "Offline map support with tile caching",
-        "Custom map layer management",
-        "Data synchronization with cloud storage",
-        "Advanced spatial analysis tools"
-      ],
-      challenges: "One of the main challenges was implementing efficient offline map functionality while maintaining app performance. This was solved by implementing a sophisticated tile caching system and optimizing data storage for offline use."
-    },
-    {
-      id: "portfolio",
-      title: "Portfolio Website",
-      description: "Personal portfolio website built with React and Tailwind CSS.",
-      type: "Web App",
-      image: "/api/placeholder/800/400",
-      technologies: ["React", "Tailwind CSS", "JavaScript"],
-      githubUrl: "https://github.com/kiu-chan/portfolio",
-      liveUrl: "https://kiu-chan.vercel.app",
-      year: "2024",
-      features: [
-        "Responsive design for all devices",
-        "Dark/Light mode support",
-        "Interactive project showcase",
-        "Smooth page transitions",
-        "Contact form with validation"
-      ],
-      challenges: "Creating a smooth and responsive user experience across all devices while maintaining fast load times. Implemented code splitting and lazy loading to optimize performance."
-    }
-  ];
-
+  
+  const projects = [project1];
   const project = projects.find(p => p.id === id);
 
   if (!project) {
-    return <div>Project not found</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Project not found</h2>
+          <Link 
+            to="/projects" 
+            className="text-blue-500 hover:text-blue-600"
+          >
+            Go back to Projects
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -71,14 +44,14 @@ const ProjectDetail = () => {
           className="w-full h-[400px] object-cover"
         />
         <div className="p-6">
-          <div className="flex justify-between items-start mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{project.title}</h1>
-              <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+              <span className="inline-block bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
                 {project.type}
               </span>
             </div>
-            <span className="text-gray-500">{project.year}</span>
+            <span className="text-gray-500 mt-2 sm:mt-0">{project.year}</span>
           </div>
           <p className="text-gray-600 text-lg mb-6">{project.description}</p>
         </div>
@@ -89,9 +62,12 @@ const ProjectDetail = () => {
         {/* Features */}
         <section className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Key Features</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-600">
+          <ul className="space-y-2 text-gray-600">
             {project.features.map((feature, index) => (
-              <li key={index}>{feature}</li>
+              <li key={index} className="flex items-start">
+                <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2"></span>
+                <span>{feature}</span>
+              </li>
             ))}
           </ul>
         </section>
@@ -99,7 +75,7 @@ const ProjectDetail = () => {
         {/* Challenges */}
         <section className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Challenges & Solutions</h2>
-          <p className="text-gray-600">{project.challenges}</p>
+          <p className="text-gray-600 leading-relaxed">{project.challenges}</p>
         </section>
 
         {/* Technologies */}

@@ -16,14 +16,7 @@ dotenv.config({ path: join(__dirname, '../../.env') });
 
 const app = express();
 
-// CORS config
-app.use(cors({
-  origin: ['https://monlycute.id.vn', 'http://localhost:5173'],
-  credentials: true
-}));
-
-// Serve static files
-app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+app.use(cors());
 app.use(express.json());
 
 // Tạo transporter với Gmail
