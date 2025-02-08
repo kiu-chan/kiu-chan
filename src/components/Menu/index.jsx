@@ -1,27 +1,37 @@
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { MENU_ITEMS } from './constants';
 
 const NavMenu = () => {
-  const menuItems = [
-    { path: '/', label: 'Home' },
-    { path: '/about', label: 'About' },
-    { path: '/skills', label: 'Skills' },
-    { path: '/projects', label: 'Projects' },
-    { path: '/contact', label: 'Contact' }
-  ];
+  const location = useLocation();
 
   return (
-    <ul className="md:flex md:space-x-6">
-      {menuItems.map((item, index) => (
-        <li key={index} className="py-2 md:py-0">
+    <div className="flex flex-col md:flex-row justify-end">
+      {MENU_ITEMS.map((item) => {
+        const isActive = location.pathname === item.path;
+        return (
           <Link
+            key={item.path}
             to={item.path}
-            className="hover:text-blue-600 transition-colors duration-200"
+            className={`
+              px-4 py-2 md:px-5 md:py-4
+              text-base font-medium
+              transition-all duration-300
+              ${isActive 
+                ? 'text-blue-600' 
+                : 'text-gray-600 hover:text-blue-500'
+              }
+              relative
+            `}
           >
             {item.label}
+            {isActive && (
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600" />
+            )}
           </Link>
-        </li>
-      ))}
-    </ul>
+        );
+      })}
+    </div>
   );
 };
 
