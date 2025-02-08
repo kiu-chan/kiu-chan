@@ -8,11 +8,11 @@
       "Flutter",
       "Dart", 
       "Firebase",
-      "Google Maps API"
+      "Map Box API"
     ],
-    "githubUrl": "https://github.com/your-username/econom-taxi",
+    "githubUrl": "https://github.com/kiu-chan/taxi.git",
     "liveUrl": "https://play.google.com/store/apps/details?id=com.your.economtaxi",
-    "year": "2024",
+    "year": "2025",
     "features": [
       "Real-time location tracking and route optimization",
       "In-app chat between drivers and passengers", 
