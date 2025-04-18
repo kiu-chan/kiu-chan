@@ -6,6 +6,9 @@ import Projects from '../pages/Projects';
 import ProjectDetail from '../pages/Projects/ProjectDetail/index';
 import Contact from '../pages/Contact';
 import DefaultLayout from '../components/Layout/DefaultLayout';
+import AdminLayout from '../components/adminLayout/AdminLayout';
+import AdminDashboard from '../pages/admin/AdminDashboard';
+import LoginPage from '../pages/admin/account/LoginPage';
 
 // Routes sử dụng DefaultLayout
 const publicRoutes = [
@@ -38,11 +41,21 @@ const publicRoutes = [
         path: '/contact',
         component: Contact,
         layout: DefaultLayout
-    }
+    },
+    {
+        path: '/login',
+        component: LoginPage,
+        layout: DefaultLayout
+    },
 ];
 
 // Routes yêu cầu đăng nhập và quyền admin
 const privateRoutes = [
+    { 
+        path: '/admin', 
+        component: AdminDashboard,
+        layout: AdminLayout
+    }
 ];
 
 export { publicRoutes, privateRoutes };
