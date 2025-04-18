@@ -9,6 +9,7 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -34,6 +35,16 @@ const ProjectDetail = () => {
 
     fetchProject();
   }, [id]);
+
+  // Xử lý lỗi hình ảnh và sử dụng hình ảnh local nếu cần
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Tạo đường dẫn hình ảnh local dựa trên id dự án
+  const getLocalImagePath = () => {
+    return `/project/${id}/1.png`;
+  };
 
   if (loading) {
     return <LoadingIndicator />;
@@ -103,15 +114,27 @@ const ProjectDetail = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Project Image */}
-          {imageUrl && (
-            <div className="mb-8 rounded-lg overflow-hidden shadow-md">
+          <div className="mb-8 rounded-lg overflow-hidden shadow-md">
+            {/* Sử dụng imageUrl từ Firestore hoặc sử dụng hình ảnh local */}
+            {!imageError && imageUrl ? (
               <img 
                 src={imageUrl} 
                 alt={name} 
                 className="w-full h-auto"
+                onError={handleImageError}
               />
-            </div>
-          )}
+            ) : (
+              <img 
+                src={getLocalImagePath()} 
+                alt={name} 
+                className="w-full h-auto"
+                onError={(e) => {
+                  e.target.onerror = null; 
+                  e.target.src = '/project/default.png';
+                }}
+              />
+            )}
+          </div>
           
           {/* Project Overview */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">

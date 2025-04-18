@@ -38,18 +38,32 @@ const ProjectCard = ({ project }) => {
   return (
     <Link to={`/projects/${id}`} className="block transition-transform duration-300 hover:-translate-y-1">
       <div className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col">
-        {imageUrl && (
-          <div className="relative h-48">
+        <div className="relative h-48">
+          {imageUrl ? (
             <img 
               src={imageUrl} 
               alt={name} 
-              className="w-full h-full object-cover" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `/project/${id}/1.png`;
+              }}
             />
-            <div className="absolute top-2 right-2">
-              {renderTypeBadge()}
-            </div>
+          ) : (
+            <img 
+              src={`/project/${id}/1.png`} 
+              alt={name} 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "/project/default.png";
+              }}
+            />
+          )}
+          <div className="absolute top-2 right-2">
+            {renderTypeBadge()}
           </div>
-        )}
+        </div>
         
         <div className="p-6 flex-grow">
           <div className="flex justify-between items-start">
