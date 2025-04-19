@@ -74,7 +74,6 @@ const Home = () => {
             <p>Currently working as a cross-platform mobile application developer at the GIS Research Center - Thai Nguyen University of Agriculture and Forestry</p>
             <p>👯 Looking to collaborate on new projects</p>
             <p>📫 How to reach me <a href="mailto:khanhk66uet@gmail.com" className="text-blue-600 hover:underline">khanhk66uet@gmail.com</a></p>
-            <p><a href="https://monlycute.id.vn/" className="text-blue-600 hover:underline">My website</a></p>
           </div>
         </section>
 
