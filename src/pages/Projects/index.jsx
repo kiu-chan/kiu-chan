@@ -23,8 +23,16 @@ const Projects = () => {
           id: doc.id,
           ...doc.data()
         }));
-        setProjects(projectList);
-        setFilteredProjects(projectList);
+        
+        // Sắp xếp dự án theo năm giảm dần (mới nhất lên đầu)
+        const sortedProjects = projectList.sort((a, b) => {
+          const yearA = a.year || 0;
+          const yearB = b.year || 0;
+          return yearB - yearA;
+        });
+        
+        setProjects(sortedProjects);
+        setFilteredProjects(sortedProjects);
       } catch (error) {
         console.error("Error fetching projects:", error);
       } finally {

@@ -8,6 +8,7 @@ import Contact from '../pages/Contact';
 import DefaultLayout from '../components/Layout/DefaultLayout';
 import AdminLayout from '../components/adminLayout/AdminLayout';
 import AdminDashboard from '../pages/admin/AdminDashboard';
+import AdminProjects from '../pages/admin/Projects';
 import LoginPage from '../pages/admin/account/LoginPage';
 
 // Routes sử dụng DefaultLayout
@@ -54,6 +55,11 @@ const privateRoutes = [
     { 
         path: '/admin', 
         component: AdminDashboard,
+        layout: AdminLayout
+    },
+    { 
+        path: '/admin/projects', 
+        component: AdminProjects,
         layout: AdminLayout
     }
 ];

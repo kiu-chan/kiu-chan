@@ -41,8 +41,12 @@ const ProjectDetail = () => {
     setImageError(true);
   };
 
-  // Tạo đường dẫn hình ảnh local dựa trên id dự án
-  const getLocalImagePath = () => {
+  // Lấy nguồn ảnh phù hợp (ưu tiên base64, sau đó URL, cuối cùng là fallback)
+  const getImageSource = () => {
+    if (!imageError) {
+      if (project?.imageBase64) return project.imageBase64;
+      if (project?.imageUrl) return project.imageUrl;
+    }
     return `/project/${id}/1.png`;
   };
 
@@ -64,7 +68,6 @@ const ProjectDetail = () => {
   const { 
     name, 
     content, 
-    imageUrl, 
     type, 
     year, 
     technologies, 
@@ -115,25 +118,20 @@ const ProjectDetail = () => {
         <div className="max-w-4xl mx-auto">
           {/* Project Image */}
           <div className="mb-8 rounded-lg overflow-hidden shadow-md">
-            {/* Sử dụng imageUrl từ Firestore hoặc sử dụng hình ảnh local */}
-            {!imageError && imageUrl ? (
-              <img 
-                src={imageUrl} 
-                alt={name} 
-                className="w-full h-auto"
-                onError={handleImageError}
-              />
-            ) : (
-              <img 
-                src={getLocalImagePath()} 
-                alt={name} 
-                className="w-full h-auto"
-                onError={(e) => {
-                  e.target.onerror = null; 
+            <img 
+              src={getImageSource()} 
+              alt={name} 
+              className="w-full h-auto"
+              onError={(e) => {
+                e.target.onerror = null;
+                setImageError(true);
+                if (e.target.src !== `/project/${id}/1.png`) {
+                  e.target.src = `/project/${id}/1.png`;
+                } else {
                   e.target.src = '/project/default.png';
-                }}
-              />
-            )}
+                }
+              }}
+            />
           </div>
           
           {/* Project Overview */}
@@ -202,7 +200,7 @@ const ProjectDetail = () => {
           )}
           
           {/* Links */}
-          {links && typeof links === 'object' && Object.keys(links).length > 0 && (
+          {links && typeof links === 'object' && Object.keys(links).some(key => links[key]) && (
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Project Links</h2>
               <div className="flex flex-wrap gap-4">

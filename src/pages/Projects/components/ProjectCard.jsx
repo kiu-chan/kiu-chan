@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const ProjectCard = ({ project }) => {
-  const { id, name, content, imageUrl, type, year, technologies } = project;
+  const { id, name, content, imageUrl, imageBase64, type, year, technologies } = project;
 
   // Tạo badge hiển thị loại dự án
   const renderTypeBadge = () => {
@@ -35,31 +35,30 @@ const ProjectCard = ({ project }) => {
     );
   };
 
+  // Lấy nguồn ảnh phù hợp (ưu tiên base64, sau đó URL, cuối cùng là fallback)
+  const getImageSource = () => {
+    if (imageBase64) return imageBase64;
+    if (imageUrl) return imageUrl;
+    return `/project/${id}/1.png`;
+  };
+
   return (
     <Link to={`/projects/${id}`} className="block transition-transform duration-300 hover:-translate-y-1">
       <div className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col">
         <div className="relative h-48">
-          {imageUrl ? (
-            <img 
-              src={imageUrl} 
-              alt={name} 
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.onerror = null;
+          <img 
+            src={getImageSource()} 
+            alt={name} 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              if (e.target.src !== `/project/${id}/1.png`) {
                 e.target.src = `/project/${id}/1.png`;
-              }}
-            />
-          ) : (
-            <img 
-              src={`/project/${id}/1.png`} 
-              alt={name} 
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.onerror = null;
+              } else {
                 e.target.src = "/project/default.png";
-              }}
-            />
-          )}
+              }
+            }}
+          />
           <div className="absolute top-2 right-2">
             {renderTypeBadge()}
           </div>
