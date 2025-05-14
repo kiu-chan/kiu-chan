@@ -18,7 +18,7 @@ function Contact() {
     setSubmitStatus({ loading: true, success: false, error: null });
     
     try {
-      const response = await fetch('http://localhost:3001/api/contact', {
+      const response = await fetch('https://monlycute.id.vn/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
