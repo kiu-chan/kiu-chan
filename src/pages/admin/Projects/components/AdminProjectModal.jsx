@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '../../../../firebase';
 import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { toast } from 'react-toastify';
-import { FaImage, FaTimes } from 'react-icons/fa';
+import { FaImage, FaTimes, FaSpinner, FaExclamationTriangle, FaCheck } from 'react-icons/fa';
 import { useApi } from '../../../../contexts/ApiContext';
 
 const AdminProjectModal = ({ project, onClose, onSuccess }) => {
-  const { uploadImage, deleteImage, getImageURL } = useApi();
+  const { uploadImage, deleteImage, getImageURL, checkImageExists } = useApi();
   
+  // State management
   const [formData, setFormData] = useState({
     name: '',
     type: 'web_app',
@@ -29,202 +30,424 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
       googlePlay: ''
     }
   });
-  
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
 
+  const [imageState, setImageState] = useState({
+    file: null,
+    preview: null,
+    loading: false,
+    error: null,
+    exists: false
+  });
+
+  const [uploadState, setUploadState] = useState({
+    isUploading: false,
+    progress: 0,
+    error: null
+  });
+
+  const [formState, setFormState] = useState({
+    isSubmitting: false,
+    isDirty: false
+  });
+
+  // Reset image state
+  const resetImageState = useCallback(() => {
+    setImageState({
+      file: null,
+      preview: null,
+      loading: false,
+      error: null,
+      exists: false
+    });
+  }, []);
+
+  // Reset upload state
+  const resetUploadState = useCallback(() => {
+    setUploadState({
+      isUploading: false,
+      progress: 0,
+      error: null
+    });
+  }, []);
+
+  // Initialize form data
   useEffect(() => {
-    if (project) {
-      setFormData({
-        name: project.name || '',
-        type: project.type || 'web_app',
-        year: project.year || new Date().getFullYear(),
-        technologies: project.technologies || [],
-        technologiesString: project.technologies ? project.technologies.join(', ') : '',
-        features: project.features || [],
-        featuresText: project.features ? project.features.join('\n') : '',
-        content: project.content || '',
-        description: project.description || '',
-        challenges: project.challenges || '',
-        solutions: project.solutions || '',
-        imageUrl: project.imageUrl || '',
-        imageFilename: project.imageFilename || '',
-        links: {
-          github: (project.links && project.links.github) || '',
-          demo: (project.links && project.links.demo) || '',
-          appStore: (project.links && project.links.appStore) || '',
-          googlePlay: (project.links && project.links.googlePlay) || ''
-        }
-      });
-      
-      if (project.imageUrl) {
-        setImagePreview(getImageURL(project.imageUrl));
-      }
-    }
-  }, [project, getImageURL]);
+    const initializeForm = async () => {
+      if (project) {
+        // Set form data
+        const newFormData = {
+          name: project.name || '',
+          type: project.type || 'web_app',
+          year: project.year || new Date().getFullYear(),
+          technologies: project.technologies || [],
+          technologiesString: project.technologies ? project.technologies.join(', ') : '',
+          features: project.features || [],
+          featuresText: project.features ? project.features.join('\n') : '',
+          content: project.content || '',
+          description: project.description || '',
+          challenges: project.challenges || '',
+          solutions: project.solutions || '',
+          imageUrl: project.imageUrl || '',
+          imageFilename: project.imageFilename || '',
+          links: {
+            github: (project.links?.github) || '',
+            demo: (project.links?.demo) || '',
+            appStore: (project.links?.appStore) || '',
+            googlePlay: (project.links?.googlePlay) || ''
+          }
+        };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Kiểm tra loại file
+        setFormData(newFormData);
+
+        // Handle existing image
+        if (project.imageUrl || project.imageFilename) {
+          setImageState(prev => ({ ...prev, loading: true, error: null }));
+
+          try {
+            const imageUrl = getImageURL(project.imageUrl || project.imageFilename);
+            const exists = project.imageFilename ? await checkImageExists(project.imageFilename) : true;
+
+            setImageState({
+              file: null,
+              preview: imageUrl,
+              loading: false,
+              error: exists ? null : 'Ảnh không tồn tại trên server',
+              exists
+            });
+          } catch (error) {
+            console.error('Error checking image:', error);
+            setImageState({
+              file: null,
+              preview: null,
+              loading: false,
+              error: 'Không thể kiểm tra ảnh',
+              exists: false
+            });
+          }
+        }
+      } else {
+        // Reset for new project
+        setFormData({
+          name: '',
+          type: 'web_app',
+          year: new Date().getFullYear(),
+          technologies: [],
+          technologiesString: '',
+          features: [],
+          featuresText: '',
+          content: '',
+          description: '',
+          challenges: '',
+          solutions: '',
+          imageUrl: '',
+          imageFilename: '',
+          links: {
+            github: '',
+            demo: '',
+            appStore: '',
+            googlePlay: ''
+          }
+        });
+        resetImageState();
+      }
+
+      setFormState({ isSubmitting: false, isDirty: false });
+      resetUploadState();
+    };
+
+    initializeForm();
+  }, [project, getImageURL, checkImageExists, resetImageState, resetUploadState]);
+
+  // Handle image upload
+  const handleImageUpload = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // Validate file
       if (!file.type.startsWith('image/')) {
         toast.error('Vui lòng chọn file hình ảnh');
         return;
       }
 
-      // Kiểm tra kích thước file (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('File quá lớn. Vui lòng chọn file nhỏ hơn 10MB');
+        toast.error('File quá lớn. Kích thước tối đa 10MB');
         return;
       }
 
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
+      // Create preview
+      const previewUrl = URL.createObjectURL(file);
 
-  const handleRemoveImage = async () => {
+      setImageState({
+        file,
+        preview: previewUrl,
+        loading: false,
+        error: null,
+        exists: true
+      });
+
+      setFormState(prev => ({ ...prev, isDirty: true }));
+
+      toast.success(`Đã chọn ảnh: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+      toast.error('Lỗi khi xử lý ảnh');
+    }
+
+    // Reset input
+    e.target.value = '';
+  }, []);
+
+  // Handle remove image
+  const handleRemoveImage = useCallback(async () => {
     try {
-      // Xóa ảnh cũ từ server nếu có
+      setImageState(prev => ({ ...prev, loading: true }));
+
+      // Delete from server if exists
       if (formData.imageFilename) {
-        await deleteImage(formData.imageFilename);
+        try {
+          await deleteImage(formData.imageFilename);
+          console.log('Old image deleted successfully');
+        } catch (error) {
+          console.warn('Failed to delete old image:', error);
+          // Don't fail the operation if delete fails
+        }
       }
-      
-      setImageFile(null);
-      setImagePreview(null);
+
+      // Cleanup preview URL
+      if (imageState.preview && imageState.file) {
+        URL.revokeObjectURL(imageState.preview);
+      }
+
+      // Reset states
+      resetImageState();
       setFormData(prev => ({
         ...prev,
         imageUrl: '',
         imageFilename: ''
       }));
-      
+
+      setFormState(prev => ({ ...prev, isDirty: true }));
       toast.success('Đã xóa ảnh');
     } catch (error) {
       console.error('Error removing image:', error);
-      toast.error('Lỗi khi xóa ảnh');
+      toast.error('Lỗi khi xóa ảnh: ' + error.message);
+      setImageState(prev => ({ ...prev, loading: false }));
     }
-  };
+  }, [formData.imageFilename, imageState.preview, imageState.file, deleteImage, resetImageState]);
 
-  const handleChange = (e) => {
+  // Handle form input changes
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormState(prev => ({ ...prev, isDirty: true }));
+  }, []);
 
-  const handleTechnologiesChange = (e) => {
+  const handleTechnologiesChange = useCallback((e) => {
     const techString = e.target.value;
     setFormData(prev => ({
       ...prev,
       technologiesString: techString,
       technologies: techString.split(',').map(tech => tech.trim()).filter(tech => tech)
     }));
-  };
+    setFormState(prev => ({ ...prev, isDirty: true }));
+  }, []);
 
-  const handleFeaturesChange = (e) => {
+  const handleFeaturesChange = useCallback((e) => {
     const featuresText = e.target.value;
     setFormData(prev => ({
       ...prev,
       featuresText: featuresText,
       features: featuresText.split('\n').map(feature => feature.trim()).filter(feature => feature)
     }));
-  };
+    setFormState(prev => ({ ...prev, isDirty: true }));
+  }, []);
 
-  const handleLinksChange = (e) => {
+  const handleLinksChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       links: {
         ...prev.links,
-        [name]: value || '' // Đảm bảo luôn có giá trị string, không bao giờ undefined
+        [name]: value || ''
       }
     }));
-  };
+    setFormState(prev => ({ ...prev, isDirty: true }));
+  }, []);
 
-  const handleSubmit = async (e) => {
+  // Handle form submission
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    
+    if (formState.isSubmitting || uploadState.isUploading) {
+      return;
+    }
+
+    setFormState(prev => ({ ...prev, isSubmitting: true }));
+    resetUploadState();
 
     try {
       let imageUrl = formData.imageUrl;
       let imageFilename = formData.imageFilename;
 
-      // Upload ảnh mới nếu có
-      if (imageFile) {
-        setIsUploading(true);
-        
+      // Handle image upload if new image selected
+      if (imageState.file) {
+        setUploadState(prev => ({ ...prev, isUploading: true, progress: 0, error: null }));
+
         try {
-          // Xóa ảnh cũ nếu có
+          // Delete old image first
           if (formData.imageFilename) {
-            await deleteImage(formData.imageFilename);
+            console.log('Deleting old image before upload...');
+            try {
+              await deleteImage(formData.imageFilename);
+            } catch (deleteError) {
+              console.warn('Failed to delete old image:', deleteError);
+              // Continue with upload even if delete fails
+            }
           }
 
-          const uploadResult = await uploadImage(imageFile, setUploadProgress);
+          // Upload new image
+          console.log('Uploading new image...');
+          const uploadResult = await uploadImage(imageState.file, (progress) => {
+            setUploadState(prev => ({ ...prev, progress }));
+          });
+
           imageUrl = uploadResult.url;
           imageFilename = uploadResult.filename;
+
+          console.log('Image upload successful:', { imageUrl, imageFilename });
+          
+          // Update image state
+          setImageState(prev => ({
+            ...prev,
+            file: null,
+            preview: imageUrl,
+            exists: true,
+            error: null
+          }));
+
+          toast.success('Upload ảnh thành công!');
         } catch (uploadError) {
           console.error('Upload error:', uploadError);
-          toast.error('Lỗi khi upload ảnh: ' + uploadError.message);
+          setUploadState(prev => ({ ...prev, error: uploadError.message }));
+          toast.error('Lỗi upload ảnh: ' + uploadError.message);
           return;
         } finally {
-          setIsUploading(false);
-          setUploadProgress(0);
+          setUploadState(prev => ({ ...prev, isUploading: false, progress: 0 }));
         }
       }
 
+      // Prepare project data
       const projectData = {
-        name: formData.name,
+        name: formData.name.trim(),
         type: formData.type,
         year: parseInt(formData.year),
         technologies: formData.technologies,
         features: formData.features,
-        content: formData.content,
-        description: formData.description,
-        challenges: formData.challenges,
-        solutions: formData.solutions,
+        content: formData.content.trim(),
+        description: formData.description.trim(),
+        challenges: formData.challenges.trim(),
+        solutions: formData.solutions.trim(),
         imageUrl: imageUrl,
         imageFilename: imageFilename,
-        links: formData.links,
+        links: {
+          github: formData.links.github.trim(),
+          demo: formData.links.demo.trim(),
+          appStore: formData.links.appStore.trim(),
+          googlePlay: formData.links.googlePlay.trim()
+        },
         updatedAt: new Date().toISOString()
       };
 
+      // Save to database
       if (project?.id) {
         await updateDoc(doc(db, "projects", project.id), projectData);
-        toast.success('Cập nhật dự án thành công');
+        toast.success('Cập nhật dự án thành công!');
       } else {
         projectData.createdAt = new Date().toISOString();
         await addDoc(collection(db, "projects"), projectData);
-        toast.success('Thêm dự án thành công');
+        toast.success('Thêm dự án mới thành công!');
       }
 
-      onSuccess();
+      // Reset dirty state
+      setFormState(prev => ({ ...prev, isDirty: false }));
+
+      // Call success callback
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error saving project:", error);
-      toast.error('Lỗi khi lưu dự án');
+      toast.error('Lỗi khi lưu dự án: ' + error.message);
     } finally {
-      setIsSubmitting(false);
+      setFormState(prev => ({ ...prev, isSubmitting: false }));
     }
-  };
+  }, [
+    formState.isSubmitting,
+    uploadState.isUploading,
+    formData,
+    imageState.file,
+    project,
+    uploadImage,
+    deleteImage,
+    onSuccess,
+    resetUploadState
+  ]);
+
+  // Handle close with dirty check
+  const handleClose = useCallback(() => {
+    if (formState.isDirty && !formState.isSubmitting) {
+      if (window.confirm('Bạn có thay đổi chưa lưu. Bạn có chắc muốn đóng không?')) {
+        // Cleanup preview URL if exists
+        if (imageState.preview && imageState.file) {
+          URL.revokeObjectURL(imageState.preview);
+        }
+        onClose();
+      }
+    } else {
+      // Cleanup preview URL if exists
+      if (imageState.preview && imageState.file) {
+        URL.revokeObjectURL(imageState.preview);
+      }
+      onClose();
+    }
+  }, [formState.isDirty, formState.isSubmitting, imageState.preview, imageState.file, onClose]);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      // Cleanup preview URL on unmount
+      if (imageState.preview && imageState.file) {
+        URL.revokeObjectURL(imageState.preview);
+      }
+    };
+  }, [imageState.preview, imageState.file]);
+
+  const isLoading = formState.isSubmitting || uploadState.isUploading || imageState.loading;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 z-10">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-2xl font-bold text-gray-800">
               {project ? 'Chỉnh sửa dự án' : 'Thêm dự án mới'}
             </h2>
             <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
+              onClick={handleClose}
+              className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              disabled={isLoading}
             >
               <FaTimes className="text-xl" />
             </button>
           </div>
+          {formState.isDirty && (
+            <div className="mt-2 text-sm text-orange-600 flex items-center">
+              <FaExclamationTriangle className="mr-2" />
+              Có thay đổi chưa được lưu
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -240,7 +463,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
                 placeholder="Nhập tên dự án"
               />
             </div>
@@ -254,7 +478,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                 value={formData.type}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
               >
                 <option value="web_app">Web Application</option>
                 <option value="mobile_app">Mobile Application</option>
@@ -276,7 +501,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                 required
                 min="2000"
                 max={new Date().getFullYear() + 1}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
               />
             </div>
 
@@ -289,64 +515,118 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                 name="technologiesString"
                 value={formData.technologiesString}
                 onChange={handleTechnologiesChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
                 placeholder="React, Node.js, MongoDB (phân cách bằng dấu phẩy)"
               />
             </div>
           </div>
 
-          {/* Image Upload */}
+          {/* Image Upload Section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Hình ảnh dự án
             </label>
             
-            {imagePreview ? (
+            {imageState.preview ? (
               <div className="relative inline-block">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-32 h-32 object-cover rounded-lg border border-gray-300"
-                />
+                <div className="relative">
+                  {imageState.loading ? (
+                    <div className="w-32 h-32 bg-gray-200 rounded-lg border border-gray-300 flex items-center justify-center">
+                      <FaSpinner className="animate-spin text-gray-400 text-2xl" />
+                    </div>
+                  ) : imageState.error ? (
+                    <div className="w-32 h-32 bg-red-50 rounded-lg border border-red-300 flex items-center justify-center">
+                      <div className="text-center">
+                        <FaExclamationTriangle className="mx-auto text-red-400 text-2xl mb-1" />
+                        <p className="text-xs text-red-600">Lỗi ảnh</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={imageState.preview}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-300 shadow-sm"
+                      onError={() => setImageState(prev => ({ ...prev, error: 'Không thể tải ảnh' }))}
+                      onLoad={() => setImageState(prev => ({ ...prev, error: null }))}
+                    />
+                  )}
+                  
+                  {imageState.exists && !imageState.error && (
+                    <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+                      <FaCheck className="text-xs" />
+                    </div>
+                  )}
+                </div>
+                
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                  disabled={isLoading}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="Xóa ảnh"
                 >
                   <FaTimes className="text-xs" />
                 </button>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                 <FaImage className="mx-auto text-4xl text-gray-400 mb-2" />
-                <p className="text-gray-500 mb-2">Chọn hình ảnh cho dự án</p>
+                <p className="text-gray-500 mb-2">
+                  Chọn hình ảnh cho dự án
+                  <br />
+                  <span className="text-sm text-gray-400">(Tối đa 10MB, tự động nén nếu cần)</span>
+                </p>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
+                  disabled={isLoading}
                   className="hidden"
                   id="image-upload"
                 />
                 <label
                   htmlFor="image-upload"
-                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 cursor-pointer inline-block"
+                  className={`inline-block px-4 py-2 rounded-md text-white transition-colors cursor-pointer ${
+                    isLoading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-500 hover:bg-blue-600'
+                  }`}
                 >
-                  Chọn ảnh
+                  {isLoading ? 'Đang xử lý...' : 'Chọn ảnh'}
                 </label>
               </div>
             )}
 
-            {isUploading && (
-              <div className="mt-2">
-                <div className="bg-gray-200 rounded-full h-2">
+            {/* Upload Progress */}
+            {uploadState.isUploading && (
+              <div className="mt-3">
+                <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
                   <div
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
+                    style={{ width: `${uploadState.progress}%` }}
+                  />
                 </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  Đang upload: {Math.round(uploadProgress)}%
+                <p className="text-sm text-gray-600 mt-1 flex items-center">
+                  <FaSpinner className="animate-spin mr-2" />
+                  Đang upload: {uploadState.progress}%
                 </p>
+              </div>
+            )}
+
+            {/* Upload Error */}
+            {uploadState.error && (
+              <div className="mt-2 text-sm text-red-600 flex items-center">
+                <FaExclamationTriangle className="mr-2" />
+                {uploadState.error}
+              </div>
+            )}
+
+            {/* Image Error */}
+            {imageState.error && (
+              <div className="mt-2 text-sm text-orange-600 flex items-center">
+                <FaExclamationTriangle className="mr-2" />
+                {imageState.error}
               </div>
             )}
           </div>
@@ -361,7 +641,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
               value={formData.description}
               onChange={handleChange}
               rows={3}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors resize-vertical"
               placeholder="Mô tả ngắn gọn về dự án"
             />
           </div>
@@ -376,7 +657,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
               value={formData.featuresText}
               onChange={handleFeaturesChange}
               rows={4}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors resize-vertical"
               placeholder="Nhập mỗi tính năng trên một dòng"
             />
           </div>
@@ -391,7 +673,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
               value={formData.content}
               onChange={handleChange}
               rows={5}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors resize-vertical"
               placeholder="Mô tả chi tiết về dự án"
             />
           </div>
@@ -407,7 +690,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                 value={formData.challenges}
                 onChange={handleChange}
                 rows={4}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors resize-vertical"
                 placeholder="Những thách thức gặp phải trong dự án"
               />
             </div>
@@ -421,7 +705,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                 value={formData.solutions}
                 onChange={handleChange}
                 rows={4}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors resize-vertical"
                 placeholder="Cách giải quyết các thách thức"
               />
             </div>
@@ -440,7 +725,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                   name="github"
                   value={formData.links.github}
                   onChange={handleLinksChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isLoading}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
                   placeholder="https://github.com/..."
                 />
               </div>
@@ -452,7 +738,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                   name="demo"
                   value={formData.links.demo}
                   onChange={handleLinksChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isLoading}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
                   placeholder="https://demo.example.com"
                 />
               </div>
@@ -464,7 +751,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                   name="appStore"
                   value={formData.links.appStore}
                   onChange={handleLinksChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isLoading}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
                   placeholder="https://apps.apple.com/..."
                 />
               </div>
@@ -476,7 +764,8 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                   name="googlePlay"
                   value={formData.links.googlePlay}
                   onChange={handleLinksChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isLoading}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
                   placeholder="https://play.google.com/..."
                 />
               </div>
@@ -484,21 +773,30 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 sticky bottom-0 bg-white">
             <button
               type="button"
-              onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              disabled={isSubmitting || isUploading}
+              onClick={handleClose}
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={isLoading}
             >
               Hủy
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isUploading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              disabled={isLoading || !formData.name.trim()}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors"
             >
-              {isSubmitting ? 'Đang lưu...' : (project ? 'Cập nhật' : 'Thêm mới')}
+              {isLoading ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  <span>
+                    {uploadState.isUploading ? 'Đang upload...' : 'Đang lưu...'}
+                  </span>
+                </>
+              ) : (
+                <span>{project ? 'Cập nhật' : 'Thêm mới'}</span>
+              )}
             </button>
           </div>
         </form>
