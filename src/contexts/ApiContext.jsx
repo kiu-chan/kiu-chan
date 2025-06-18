@@ -7,7 +7,7 @@ export function useApi() {
 }
 
 export function ApiProvider({ children }) {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
   // Upload ảnh lên server
   const uploadImage = async (file, progressCallback) => {
@@ -22,7 +22,6 @@ export function ApiProvider({ children }) {
 
       const xhr = new XMLHttpRequest();
 
-      // Theo dõi tiến trình upload
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
           const progress = (e.loaded / e.total) * 100;
@@ -38,7 +37,7 @@ export function ApiProvider({ children }) {
             const response = JSON.parse(xhr.responseText);
             if (response.success) {
               resolve({
-                url: `${import.meta.env.VITE_API_BASE_URL}${response.url}`,
+                url: `${API_BASE_URL}${response.url}`,
                 filename: response.filename,
                 originalName: response.originalName,
                 name: file.name,
@@ -52,7 +51,7 @@ export function ApiProvider({ children }) {
             reject('Error parsing response');
           }
         } else {
-          reject('Upload failed');
+          reject(`Upload failed with status: ${xhr.status}`);
         }
       });
 
@@ -60,7 +59,7 @@ export function ApiProvider({ children }) {
         reject('Network error');
       });
 
-      xhr.open('POST', `${API_BASE_URL}/upload-image`);
+      xhr.open('POST', `${API_BASE_URL}/api/upload-image`);
       xhr.send(formData);
     });
   };
@@ -68,7 +67,7 @@ export function ApiProvider({ children }) {
   // Xóa ảnh từ server
   const deleteImage = async (filename) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/delete-image/${filename}`, {
+      const response = await fetch(`${API_BASE_URL}/api/delete-image/${filename}`, {
         method: 'DELETE',
       });
 
@@ -85,27 +84,36 @@ export function ApiProvider({ children }) {
     }
   };
 
-  // Lấy URL đầy đủ của ảnh
+  // Kiểm tra file có tồn tại không
+  const checkImageExists = async (filename) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/check-image/${filename}`);
+      const result = await response.json();
+      return result.exists;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Lấy URL đầy đủ của ảnh với fallback
   const getImageURL = (filename) => {
     if (!filename) return null;
     
-    // Nếu filename đã là URL đầy đủ
     if (filename.startsWith('http')) {
       return filename;
     }
     
-    // Nếu filename bắt đầu bằng /uploads/
     if (filename.startsWith('/uploads/')) {
-      return `${import.meta.env.VITE_API_BASE_URL}${filename}`;
+      return `${API_BASE_URL}${filename}`;
     }
     
-    // Nếu chỉ là tên file
-    return `${import.meta.env.VITE_API_BASE_URL}/uploads/${filename}`;
+    return `${API_BASE_URL}/uploads/${filename}`;
   };
 
   const value = {
     uploadImage,
     deleteImage,
+    checkImageExists,
     getImageURL
   };
 

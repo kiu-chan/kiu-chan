@@ -52,11 +52,11 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
         solutions: project.solutions || '',
         imageUrl: project.imageUrl || '',
         imageFilename: project.imageFilename || '',
-        links: project.links || {
-          github: '',
-          demo: '',
-          appStore: '',
-          googlePlay: ''
+        links: {
+          github: (project.links && project.links.github) || '',
+          demo: (project.links && project.links.demo) || '',
+          appStore: (project.links && project.links.appStore) || '',
+          googlePlay: (project.links && project.links.googlePlay) || ''
         }
       });
       
@@ -140,7 +140,7 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
       ...prev,
       links: {
         ...prev.links,
-        [name]: value
+        [name]: value || '' // Đảm bảo luôn có giá trị string, không bao giờ undefined
       }
     }));
   };
