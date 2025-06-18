@@ -4,14 +4,15 @@ import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import AdminProjectList from './components/AdminProjectList';
 import AdminProjectModal from './components/AdminProjectModal';
 import { toast } from 'react-toastify';
+import { useApi } from '../../../contexts/ApiContext';
 
 const AdminProjects = () => {
+  const { deleteImage } = useApi();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Fetch projects from Firestore
   const fetchProjects = async () => {
     try {
       setLoading(true);
@@ -30,31 +31,41 @@ const AdminProjects = () => {
     }
   };
 
-  // Delete a project
   const handleDeleteProject = async (projectId) => {
     try {
+      // Tìm project để lấy thông tin ảnh
+      const project = projects.find(p => p.id === projectId);
+      
+      // Xóa ảnh từ server nếu có
+      if (project?.imageFilename) {
+        try {
+          await deleteImage(project.imageFilename);
+        } catch (imageError) {
+          console.error('Error deleting image:', imageError);
+          // Không dừng việc xóa project nếu lỗi xóa ảnh
+        }
+      }
+      
+      // Xóa project từ Firestore
       await deleteDoc(doc(db, "projects", projectId));
       toast.success('Project deleted successfully');
-      fetchProjects(); // Refresh the list
+      fetchProjects();
     } catch (error) {
       toast.error('Error deleting project');
       console.error("Error deleting project:", error);
     }
   };
 
-  // Open modal for adding/editing project
   const handleOpenModal = (project = null) => {
     setSelectedProject(project);
     setIsModalOpen(true);
   };
 
-  // Close modal
   const handleCloseModal = () => {
     setSelectedProject(null);
     setIsModalOpen(false);
   };
 
-  // Reload projects after successful add/edit
   const handleProjectSuccess = () => {
     fetchProjects();
     handleCloseModal();

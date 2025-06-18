@@ -1,23 +1,46 @@
 import React, { useState } from 'react';
 import { FaEdit, FaTrash, FaImage } from 'react-icons/fa';
 import LoadingIndicator from '../../../../components/LoadingIndicator';
+import { useApi } from '../../../../contexts/ApiContext';
 
 const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
+  const { getImageURL } = useApi();
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     show: false,
     projectId: null,
     projectName: ''
   });
-  // Function to get the most appropriate image URL or base64 data
+
   const getProjectImage = (project) => {
-    // Ưu tiên dùng base64 image nếu có
-    if (project.imageBase64) return project.imageBase64;
-    
-    // Kiểm tra imageUrl nếu không có base64
-    if (project.imageUrl) return project.imageUrl;
-    
-    // Không có ảnh
+    if (project.imageUrl) {
+      return getImageURL(project.imageUrl);
+    }
     return null;
+  };
+
+  const handleDeleteClick = (projectId, projectName) => {
+    setDeleteConfirmation({
+      show: true,
+      projectId: projectId,
+      projectName: projectName
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    onDelete(deleteConfirmation.projectId);
+    setDeleteConfirmation({
+      show: false,
+      projectId: null,
+      projectName: ''
+    });
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmation({
+      show: false,
+      projectId: null,
+      projectName: ''
+    });
   };
 
   if (loading) {
@@ -58,18 +81,12 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
                             alt={project.name} 
                             className="h-full w-full object-cover"
                             onError={(e) => {
-                              e.target.onerror = null;
                               e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = `
-                                <div class="h-10 w-10 rounded-full flex items-center justify-center">
-                                  <FaImage className="text-gray-500" />
-                                </div>
-                              `;
+                              e.target.nextSibling.style.display = 'flex';
                             }}
                           />
-                        ) : (
-                          <FaImage className="text-gray-500" />
-                        )}
+                        ) : null}
+                        <FaImage className="text-gray-500" style={{ display: getProjectImage(project) ? 'none' : 'block' }} />
                       </div>
                       <span className="font-medium text-gray-900">{project.name}</span>
                     </div>
@@ -78,19 +95,21 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
                     <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
                       {project.type === 'mobile_app' ? 'Mobile App' : 
                        project.type === 'web_app' ? 'Web App' : 
-                       project.type === 'desktop_app' ? 'Desktop App' : project.type}
+                       project.type === 'desktop_app' ? 'Desktop App' :
+                       project.type === 'api' ? 'API/Backend' : 
+                       'Other'}
                     </span>
                   </td>
-                  <td className="p-3 text-gray-500">{project.year}</td>
+                  <td className="p-3 text-gray-600">{project.year}</td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-1">
-                      {project.technologies?.slice(0, 3).map((tech, index) => (
-                        <span key={index} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                      {project.technologies && project.technologies.slice(0, 3).map((tech, index) => (
+                        <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
                           {tech}
                         </span>
                       ))}
                       {project.technologies && project.technologies.length > 3 && (
-                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
                           +{project.technologies.length - 3}
                         </span>
                       )}
@@ -98,21 +117,17 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
                   </td>
                   <td className="p-3">
                     <div className="flex justify-center space-x-2">
-                      <button 
+                      <button
                         onClick={() => onEdit(project)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
-                        aria-label="Edit Project"
+                        className="text-blue-600 hover:text-blue-800 p-1"
+                        title="Edit Project"
                       >
                         <FaEdit />
                       </button>
-                      <button 
-                        onClick={() => setDeleteConfirmation({
-                          show: true,
-                          projectId: project.id,
-                          projectName: project.name
-                        })}
-                        className="text-red-600 hover:text-red-800 transition-colors"
-                        aria-label="Delete Project"
+                      <button
+                        onClick={() => handleDeleteClick(project.id, project.name)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Delete Project"
                       >
                         <FaTrash />
                       </button>
@@ -124,29 +139,28 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
           </table>
         </div>
       </div>
-      
+
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Confirm Delete</h3>
-            <p className="text-gray-700 mb-4">
-              Are you sure you want to delete the project <span className="font-semibold">{deleteConfirmation.projectName}</span>? 
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Confirm Delete
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete "{deleteConfirmation.projectName}"? 
               This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
-                onClick={() => setDeleteConfirmation({ show: false, projectId: null, projectName: '' })}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                onClick={handleCancelDelete}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  onDelete(deleteConfirmation.projectId);
-                  setDeleteConfirmation({ show: false, projectId: null, projectName: '' });
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
               >
                 Delete
               </button>
