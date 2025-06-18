@@ -38,7 +38,7 @@ export function ApiProvider({ children }) {
             const response = JSON.parse(xhr.responseText);
             if (response.success) {
               resolve({
-                url: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}${response.url}`,
+                url: `${import.meta.env.VITE_API_BASE_URL}${response.url}`,
                 filename: response.filename,
                 originalName: response.originalName,
                 name: file.name,
@@ -96,11 +96,11 @@ export function ApiProvider({ children }) {
     
     // Nếu filename bắt đầu bằng /uploads/
     if (filename.startsWith('/uploads/')) {
-      return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}${filename}`;
+      return `${import.meta.env.VITE_API_BASE_URL}${filename}`;
     }
     
     // Nếu chỉ là tên file
-    return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/uploads/${filename}`;
+    return `${import.meta.env.VITE_API_BASE_URL}/uploads/${filename}`;
   };
 
   const value = {

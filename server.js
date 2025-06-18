@@ -31,6 +31,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
+// Sửa lỗi: createTransport thay vì createTransporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -114,6 +115,18 @@ app.delete('/api/delete-image/:filename', (req, res) => {
       message: 'File đã được xóa thành công'
     });
   });
+});
+
+// API kiểm tra file tồn tại
+app.get('/api/check-image/:filename', (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(uploadsDir, filename);
+  
+  if (fs.existsSync(filePath)) {
+    res.json({ exists: true });
+  } else {
+    res.status(404).json({ exists: false });
+  }
 });
 
 // Route API để xử lý gửi email từ form liên hệ
