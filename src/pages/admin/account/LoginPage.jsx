@@ -1,15 +1,37 @@
 import React, { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, getFirestore } from 'firebase/firestore';
+import { googleProvider } from '../../../firebase';
+import { FaGoogle } from 'react-icons/fa';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const auth = getAuth();
   const db = getFirestore();
+
+  const checkUserAccess = async (user) => {
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      await auth.signOut();
+      throw new Error('Account not found. Please contact administrator.');
+    }
+    
+    const userData = userDoc.data();
+    
+    if (userData?.role !== 'admin') {
+      await auth.signOut();
+      throw new Error('Access denied. Admin rights required.');
+    }
+    
+    return userData;
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,25 +39,10 @@ function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Đăng nhập
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Kiểm tra vai trò admin
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.data();
-
-      // Nếu là admin, chuyển đến trang admin
-      if (userData?.role === 'admin') {
-        window.location.href = '/admin';
-      } else {
-        // Nếu không phải admin, đăng xuất và báo lỗi
-        await auth.signOut();
-        setError('Access denied. Admin rights required.');
-      }
+      await checkUserAccess(userCredential.user);
+      window.location.href = '/admin';
     } catch (error) {
-      // Xử lý lỗi đăng nhập
       switch (error.code) {
         case 'auth/invalid-credential':
           setError('Invalid email or password');
@@ -47,10 +54,29 @@ function LoginPage() {
           setError('Incorrect password');
           break;
         default:
-          setError('Login failed. Please try again.');
+          setError(error.message || 'Login failed. Please try again.');
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setIsGoogleLoading(true);
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      await checkUserAccess(result.user);
+      window.location.href = '/admin';
+    } catch (error) {
+      if (error.code === 'auth/popup-closed-by-user') {
+        setError('Login cancelled');
+      } else {
+        setError(error.message || 'Google login failed. Please try again.');
+      }
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -110,15 +136,37 @@ function LoginPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="space-y-3">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 
                          rounded focus:outline-none focus:shadow-outline transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Logging in...' : 'Login'}
+            </button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={isLoading || isGoogleLoading}
+              className="w-full bg-white hover:bg-gray-50 text-gray-700 font-bold py-2 px-4 
+                         rounded border border-gray-300 focus:outline-none focus:shadow-outline 
+                         transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                         flex items-center justify-center"
+            >
+              <FaGoogle className="mr-2 text-red-500" />
+              {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
             </button>
           </div>
         </form>
