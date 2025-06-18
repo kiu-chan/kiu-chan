@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaImage, FaExclamationTriangle } from 'react-icons/fa';
 import LoadingIndicator from '../../../../components/LoadingIndicator';
 import { useApi } from '../../../../contexts/ApiContext';
@@ -11,6 +11,18 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
     projectName: ''
   });
   const [imageErrors, setImageErrors] = useState(new Set());
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Listen for image refresh events
+  useEffect(() => {
+    const handleRefresh = () => {
+      setRefreshKey(prev => prev + 1);
+      setImageErrors(new Set()); // Clear errors
+    };
+
+    window.addEventListener('refreshImages', handleRefresh);
+    return () => window.removeEventListener('refreshImages', handleRefresh);
+  }, []);
 
   const getProjectImage = (project) => {
     if (!project) return null;
@@ -26,6 +38,14 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
 
   const handleImageError = (projectId) => {
     setImageErrors(prev => new Set(prev).add(projectId));
+  };
+
+  const handleImageLoad = (projectId) => {
+    setImageErrors(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(projectId);
+      return newSet;
+    });
   };
 
   const handleDeleteClick = (projectId, projectName) => {
@@ -92,11 +112,12 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
                         <div className="h-10 w-10 rounded-full mr-3 overflow-hidden bg-gray-200 flex items-center justify-center">
                           {imageUrl && !hasImageError ? (
                             <img 
-                              key={`${project.id}-${imageUrl}`} // Force re-render khi URL thay đổi
+                              key={`${project.id}-${refreshKey}`} // Force re-render với refreshKey
                               src={imageUrl}
                               alt={project.name} 
                               className="h-full w-full object-cover"
                               onError={() => handleImageError(project.id)}
+                              onLoad={() => handleImageLoad(project.id)}
                             />
                           ) : hasImageError ? (
                             <FaExclamationTriangle className="text-orange-500 text-sm" />

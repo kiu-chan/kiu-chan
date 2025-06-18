@@ -6,7 +6,7 @@ import { FaImage, FaTimes, FaSpinner, FaExclamationTriangle } from 'react-icons/
 import { useApi } from '../../../../contexts/ApiContext';
 
 const AdminProjectModal = ({ project, onClose, onSuccess }) => {
-  const { uploadImage, deleteImage, getImageURL } = useApi();
+  const { uploadImage, deleteImage, getImageURL, refreshImageCache } = useApi();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -37,7 +37,6 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load dữ liệu project
   useEffect(() => {
     if (project) {
       setFormData({
@@ -62,7 +61,6 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
         }
       });
 
-      // Load ảnh hiện tại
       if (project.imageUrl || project.imageFilename) {
         const imageUrl = getImageURL(project.imageUrl || project.imageFilename);
         setImagePreview(imageUrl);
@@ -160,26 +158,27 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
       let imageUrl = formData.imageUrl;
       let imageFilename = formData.imageFilename;
 
-      // Upload ảnh mới nếu có
       if (imageFile) {
         setIsUploading(true);
         setUploadProgress(0);
 
         try {
-          // Xóa ảnh cũ
           if (formData.imageFilename) {
             await deleteImage(formData.imageFilename);
           }
 
-          // Upload ảnh mới
           const uploadResult = await uploadImage(imageFile, setUploadProgress);
           imageUrl = uploadResult.url;
           imageFilename = uploadResult.filename;
 
-          // Cập nhật preview với URL mới (không cache busting)
-          const newImageUrl = uploadResult.url.split('?')[0]; // Bỏ cache busting cho preview
-          setImagePreview(newImageUrl);
+          // Cập nhật preview và trigger refresh
+          setImagePreview(uploadResult.url);
           setImageFile(null);
+          
+          // Trigger refresh cho tất cả components
+          setTimeout(() => {
+            refreshImageCache();
+          }, 100);
 
           toast.success('Upload ảnh thành công!');
         } catch (uploadError) {
@@ -191,7 +190,6 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
         }
       }
 
-      // Lưu project
       const projectData = {
         name: formData.name.trim(),
         type: formData.type,
@@ -221,6 +219,11 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
         await addDoc(collection(db, "projects"), projectData);
         toast.success('Thêm dự án thành công!');
       }
+
+      // Refresh images sau khi save
+      setTimeout(() => {
+        refreshImageCache();
+      }, 100);
 
       onSuccess();
     } catch (error) {
@@ -252,6 +255,7 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Basic form fields remain the same */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -394,6 +398,7 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
             )}
           </div>
 
+          {/* Rest of the form fields remain the same */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Mô tả ngắn

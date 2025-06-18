@@ -26,12 +26,24 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://monlycute.id.vn'],
+  credentials: true
+}));
+
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-// Sửa lỗi: createTransport thay vì createTransporter
+// Serve static files với headers để tránh cache
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
+  setHeaders: (res, filePath) => {
+    // Disable caching để đảm bảo ảnh mới được load
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -67,11 +79,22 @@ app.post('/api/upload-image', (req, res) => {
       });
     }
 
-    // Tạo tên file mới
+    // Kiểm tra loại file
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WebP)'
+      });
+    }
+
+    // Tạo tên file mới với timestamp và random string
     const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
     const originalName = file.originalFilename || 'image';
     const extension = path.extname(originalName);
-    const newFileName = `${timestamp}-${Math.random().toString(36).substring(7)}${extension}`;
+    const cleanName = path.basename(originalName, extension).replace(/[^a-zA-Z0-9]/g, '');
+    const newFileName = `${timestamp}-${randomStr}-${cleanName}${extension}`;
     const newFilePath = path.join(uploadsDir, newFileName);
 
     // Di chuyển file
@@ -84,13 +107,24 @@ app.post('/api/upload-image', (req, res) => {
         });
       }
 
+      // Verify file exists after move
+      if (!fs.existsSync(newFilePath)) {
+        return res.status(500).json({
+          success: false,
+          message: 'File không được lưu thành công'
+        });
+      }
+
       const imageUrl = `/uploads/${newFileName}`;
+      
+      console.log(`Image uploaded successfully: ${newFileName}`);
       
       res.json({
         success: true,
         url: imageUrl,
         filename: newFileName,
-        originalName: originalName
+        originalName: originalName,
+        size: fs.statSync(newFilePath).size
       });
     });
   });
@@ -99,7 +133,24 @@ app.post('/api/upload-image', (req, res) => {
 // API xóa ảnh
 app.delete('/api/delete-image/:filename', (req, res) => {
   const { filename } = req.params;
+  
+  // Validate filename để tránh path traversal
+  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Tên file không hợp lệ'
+    });
+  }
+
   const filePath = path.join(uploadsDir, filename);
+
+  // Kiểm tra file có tồn tại không
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      message: 'File không tồn tại'
+    });
+  }
 
   fs.unlink(filePath, (err) => {
     if (err) {
@@ -110,6 +161,8 @@ app.delete('/api/delete-image/:filename', (req, res) => {
       });
     }
 
+    console.log(`Image deleted successfully: ${filename}`);
+    
     res.json({
       success: true,
       message: 'File đã được xóa thành công'
@@ -120,13 +173,99 @@ app.delete('/api/delete-image/:filename', (req, res) => {
 // API kiểm tra file tồn tại
 app.get('/api/check-image/:filename', (req, res) => {
   const { filename } = req.params;
+  
+  // Validate filename
+  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).json({ exists: false });
+  }
+
   const filePath = path.join(uploadsDir, filename);
   
   if (fs.existsSync(filePath)) {
-    res.json({ exists: true });
+    const stats = fs.statSync(filePath);
+    res.json({ 
+      exists: true,
+      size: stats.size,
+      modified: stats.mtime
+    });
   } else {
     res.status(404).json({ exists: false });
   }
+});
+
+// API get thông tin file
+app.get('/api/image-info/:filename', (req, res) => {
+  const { filename } = req.params;
+  
+  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Tên file không hợp lệ'
+    });
+  }
+
+  const filePath = path.join(uploadsDir, filename);
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      message: 'File không tồn tại'
+    });
+  }
+
+  try {
+    const stats = fs.statSync(filePath);
+    res.json({
+      success: true,
+      filename: filename,
+      size: stats.size,
+      created: stats.birthtime,
+      modified: stats.mtime,
+      url: `/uploads/${filename}`
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thông tin file'
+    });
+  }
+});
+
+// API serve ảnh trực tiếp với headers chống cache
+app.get('/uploads/:filename', (req, res) => {
+  const { filename } = req.params;
+  
+  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).send('Invalid filename');
+  }
+
+  const filePath = path.join(uploadsDir, filename);
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send('File not found');
+  }
+
+  // Set headers to prevent caching
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
+  // Set proper content type
+  const ext = path.extname(filename).toLowerCase();
+  const contentTypes = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp'
+  };
+  
+  if (contentTypes[ext]) {
+    res.setHeader('Content-Type', contentTypes[ext]);
+  }
+
+  // Send file
+  res.sendFile(filePath);
 });
 
 // Route API để xử lý gửi email từ form liên hệ
@@ -188,4 +327,5 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server đang chạy tại http://localhost:${PORT}`);
   console.log('Sử dụng file .env để cấu hình email');
+  console.log(`Uploads directory: ${uploadsDir}`);
 });

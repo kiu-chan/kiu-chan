@@ -138,7 +138,7 @@ export function ApiProvider({ children }) {
     }
   };
 
-  // Lấy URL ảnh với cache busting
+  // Lấy URL ảnh - KHÔNG dùng cache busting
   const getImageURL = (imageData) => {
     if (!imageData) return null;
 
@@ -146,27 +146,25 @@ export function ApiProvider({ children }) {
     
     // Nếu đã là URL đầy đủ
     if (typeof imageData === 'string' && imageData.startsWith('http')) {
-      url = imageData;
-    } else {
-      // Xử lý filename
-      let filename = imageData;
-      if (typeof imageData === 'object' && imageData.filename) {
-        filename = imageData.filename;
-      }
-
-      if (!filename) return null;
-
-      if (filename.startsWith('/uploads/')) {
-        url = `${API_BASE_URL}${filename}`;
-      } else {
-        url = `${API_BASE_URL}/uploads/${filename}`;
-      }
+      return imageData; // Trả về ngay không thêm gì
+    }
+    
+    // Xử lý filename
+    let filename = imageData;
+    if (typeof imageData === 'object' && imageData.filename) {
+      filename = imageData.filename;
     }
 
-    // Thêm cache busting để đảm bảo ảnh được reload
-    const cacheBuster = Date.now();
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}t=${cacheBuster}`;
+    if (!filename) return null;
+
+    // Xây dựng URL đơn giản
+    if (filename.startsWith('/uploads/')) {
+      url = `${API_BASE_URL}${filename}`;
+    } else {
+      url = `${API_BASE_URL}/uploads/${filename}`;
+    }
+
+    return url;
   };
 
   // Kiểm tra ảnh tồn tại
@@ -174,7 +172,9 @@ export function ApiProvider({ children }) {
     try {
       if (!filename) return false;
       
-      const url = `${API_BASE_URL}/api/check-image/${encodeURIComponent(filename)}`;
+      const url = getImageURL(filename);
+      if (!url) return false;
+      
       const response = await fetch(url, { method: 'HEAD' });
       return response.ok;
     } catch (error) {
@@ -182,11 +182,18 @@ export function ApiProvider({ children }) {
     }
   };
 
+  // Force refresh component khi cần
+  const refreshImageCache = () => {
+    // Trigger re-render của components sử dụng ảnh
+    window.dispatchEvent(new CustomEvent('refreshImages'));
+  };
+
   const value = {
     uploadImage,
     deleteImage,
     getImageURL,
     checkImageExists,
+    refreshImageCache,
     API_BASE_URL
   };
 
