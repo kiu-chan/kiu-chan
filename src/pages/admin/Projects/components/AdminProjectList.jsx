@@ -15,7 +15,6 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
   const getProjectImage = (project) => {
     if (!project) return null;
     
-    // Ưu tiên imageUrl, sau đó imageFilename
     if (project.imageUrl) {
       return getImageURL(project.imageUrl);
     }
@@ -27,14 +26,6 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
 
   const handleImageError = (projectId) => {
     setImageErrors(prev => new Set(prev).add(projectId));
-  };
-
-  const handleImageLoad = (projectId) => {
-    setImageErrors(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(projectId);
-      return newSet;
-    });
   };
 
   const handleDeleteClick = (projectId, projectName) => {
@@ -71,7 +62,6 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
       <div className="text-center py-12 bg-white rounded-lg shadow">
         <FaImage className="mx-auto text-4xl text-gray-400 mb-4" />
         <p className="text-gray-600 text-lg">Chưa có dự án nào</p>
-        <p className="text-gray-500 text-sm mt-2">Nhấn "Add New Project" để thêm dự án đầu tiên</p>
       </div>
     );
   }
@@ -99,38 +89,22 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
                   <tr key={project.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-3 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full mr-3 overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full mr-3 overflow-hidden bg-gray-200 flex items-center justify-center">
                           {imageUrl && !hasImageError ? (
                             <img 
+                              key={`${project.id}-${imageUrl}`} // Force re-render khi URL thay đổi
                               src={imageUrl}
                               alt={project.name} 
                               className="h-full w-full object-cover"
                               onError={() => handleImageError(project.id)}
-                              onLoad={() => handleImageLoad(project.id)}
                             />
                           ) : hasImageError ? (
-                            <FaExclamationTriangle 
-                              className="text-orange-500 text-sm" 
-                              title="Không thể tải ảnh"
-                            />
+                            <FaExclamationTriangle className="text-orange-500 text-sm" />
                           ) : (
-                            <FaImage 
-                              className="text-gray-400 text-sm" 
-                              title="Không có ảnh"
-                            />
+                            <FaImage className="text-gray-400 text-sm" />
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="font-medium text-gray-900 truncate block">
-                            {project.name}
-                          </span>
-                          {project.description && (
-                            <span className="text-sm text-gray-500 truncate block">
-                              {project.description.substring(0, 50)}
-                              {project.description.length > 50 ? '...' : ''}
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-medium text-gray-900">{project.name}</span>
                       </div>
                     </td>
                     <td className="p-3">
@@ -148,7 +122,7 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
                          'Other'}
                       </span>
                     </td>
-                    <td className="p-3 text-gray-600 font-medium">{project.year}</td>
+                    <td className="p-3 text-gray-600">{project.year}</td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-1">
                         {project.technologies && project.technologies.length > 0 ? (
@@ -159,16 +133,13 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
                               </span>
                             ))}
                             {project.technologies.length > 3 && (
-                              <span 
-                                className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded cursor-help"
-                                title={project.technologies.slice(3).join(', ')}
-                              >
+                              <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
                                 +{project.technologies.length - 3}
                               </span>
                             )}
                           </>
                         ) : (
-                          <span className="text-xs text-gray-400 italic">No technologies listed</span>
+                          <span className="text-xs text-gray-400">No technologies</span>
                         )}
                       </div>
                     </td>
@@ -176,15 +147,13 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
                       <div className="flex justify-center space-x-2">
                         <button
                           onClick={() => onEdit(project)}
-                          className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
-                          title="Edit Project"
+                          className="text-blue-600 hover:text-blue-800 p-1"
                         >
                           <FaEdit />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(project.id, project.name)}
-                          className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
-                          title="Delete Project"
+                          className="text-red-600 hover:text-red-800 p-1"
                         >
                           <FaTrash />
                         </button>
@@ -198,41 +167,27 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <FaTrash className="text-red-600" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Xác nhận xóa
-                </h3>
-              </div>
-            </div>
-            <div className="mb-6">
-              <p className="text-gray-600">
-                Bạn có chắc chắn muốn xóa dự án{' '}
-                <span className="font-semibold text-gray-900">"{deleteConfirmation.projectName}"</span>?
-              </p>
-              <p className="text-sm text-red-600 mt-2">
-                Hành động này không thể hoàn tác và sẽ xóa toàn bộ dữ liệu liên quan.
-              </p>
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Xác nhận xóa
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Bạn có chắc muốn xóa "{deleteConfirmation.projectName}"?
+            </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={handleCancelDelete}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Hủy
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
               >
-                Xóa dự án
+                Xóa
               </button>
             </div>
           </div>

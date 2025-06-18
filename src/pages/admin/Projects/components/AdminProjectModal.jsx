@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../../../../firebase';
 import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { toast } from 'react-toastify';
@@ -30,20 +30,14 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
     }
   });
 
-  const [imageState, setImageState] = useState({
-    file: null,
-    preview: null,
-    loading: false,
-    error: null
-  });
-
-  const [uploadState, setUploadState] = useState({
-    isUploading: false,
-    progress: 0
-  });
-
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageError, setImageError] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Load dữ liệu project
   useEffect(() => {
     if (project) {
       setFormData({
@@ -68,20 +62,16 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
         }
       });
 
-      // Set existing image preview if available
+      // Load ảnh hiện tại
       if (project.imageUrl || project.imageFilename) {
         const imageUrl = getImageURL(project.imageUrl || project.imageFilename);
-        setImageState({
-          file: null,
-          preview: imageUrl,
-          loading: false,
-          error: null
-        });
+        setImagePreview(imageUrl);
+        setImageError(false);
       }
     }
   }, [project, getImageURL]);
 
-  const handleImageUpload = useCallback((e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -91,38 +81,29 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('File quá lớn. Kích thước tối đa 10MB');
+      toast.error('File quá lớn. Tối đa 10MB');
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    setImageState({
-      file,
-      preview: previewUrl,
-      loading: false,
-      error: null
-    });
-
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setImageError(false);
     e.target.value = '';
-  }, []);
+  };
 
-  const handleRemoveImage = useCallback(async () => {
+  const handleRemoveImage = async () => {
     try {
       if (formData.imageFilename) {
         await deleteImage(formData.imageFilename);
       }
 
-      if (imageState.preview && imageState.file) {
-        URL.revokeObjectURL(imageState.preview);
+      if (imagePreview && imageFile) {
+        URL.revokeObjectURL(imagePreview);
       }
 
-      setImageState({
-        file: null,
-        preview: null,
-        loading: false,
-        error: null
-      });
-
+      setImageFile(null);
+      setImagePreview(null);
+      setImageError(false);
       setFormData(prev => ({
         ...prev,
         imageUrl: '',
@@ -131,35 +112,34 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
 
       toast.success('Đã xóa ảnh');
     } catch (error) {
-      console.error('Error removing image:', error);
-      setImageState(prev => ({ ...prev, error: 'Không thể xóa ảnh' }));
+      toast.error('Lỗi khi xóa ảnh');
     }
-  }, [formData.imageFilename, imageState.preview, imageState.file, deleteImage]);
+  };
 
-  const handleChange = useCallback((e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  }, []);
+  };
 
-  const handleTechnologiesChange = useCallback((e) => {
+  const handleTechnologiesChange = (e) => {
     const techString = e.target.value;
     setFormData(prev => ({
       ...prev,
       technologiesString: techString,
       technologies: techString.split(',').map(tech => tech.trim()).filter(tech => tech)
     }));
-  }, []);
+  };
 
-  const handleFeaturesChange = useCallback((e) => {
+  const handleFeaturesChange = (e) => {
     const featuresText = e.target.value;
     setFormData(prev => ({
       ...prev,
       featuresText: featuresText,
       features: featuresText.split('\n').map(feature => feature.trim()).filter(feature => feature)
     }));
-  }, []);
+  };
 
-  const handleLinksChange = useCallback((e) => {
+  const handleLinksChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -168,52 +148,50 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
         [name]: value || ''
       }
     }));
-  }, []);
+  };
 
-  const handleSubmit = useCallback(async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (isSubmitting || uploadState.isUploading) return;
-
+    if (isSubmitting || isUploading) return;
     setIsSubmitting(true);
 
     try {
       let imageUrl = formData.imageUrl;
       let imageFilename = formData.imageFilename;
 
-      // Handle image upload if new image selected
-      if (imageState.file) {
-        setUploadState({ isUploading: true, progress: 0 });
+      // Upload ảnh mới nếu có
+      if (imageFile) {
+        setIsUploading(true);
+        setUploadProgress(0);
 
         try {
+          // Xóa ảnh cũ
           if (formData.imageFilename) {
             await deleteImage(formData.imageFilename);
           }
 
-          const uploadResult = await uploadImage(imageState.file, (progress) => {
-            setUploadState(prev => ({ ...prev, progress }));
-          });
-
+          // Upload ảnh mới
+          const uploadResult = await uploadImage(imageFile, setUploadProgress);
           imageUrl = uploadResult.url;
           imageFilename = uploadResult.filename;
 
-          setImageState(prev => ({
-            ...prev,
-            file: null,
-            preview: imageUrl,
-            error: null
-          }));
+          // Cập nhật preview với URL mới (không cache busting)
+          const newImageUrl = uploadResult.url.split('?')[0]; // Bỏ cache busting cho preview
+          setImagePreview(newImageUrl);
+          setImageFile(null);
 
           toast.success('Upload ảnh thành công!');
         } catch (uploadError) {
-          console.error('Upload error:', uploadError);
-          toast.error('Lỗi upload ảnh: ' + uploadError.message);
+          toast.error('Lỗi upload: ' + uploadError.message);
           return;
         } finally {
-          setUploadState({ isUploading: false, progress: 0 });
+          setIsUploading(false);
+          setUploadProgress(0);
         }
       }
 
+      // Lưu project
       const projectData = {
         name: formData.name.trim(),
         type: formData.type,
@@ -241,44 +219,31 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
       } else {
         projectData.createdAt = new Date().toISOString();
         await addDoc(collection(db, "projects"), projectData);
-        toast.success('Thêm dự án mới thành công!');
+        toast.success('Thêm dự án thành công!');
       }
 
       onSuccess();
     } catch (error) {
       console.error("Error saving project:", error);
-      toast.error('Lỗi khi lưu dự án: ' + error.message);
+      toast.error('Lỗi khi lưu dự án');
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    isSubmitting,
-    uploadState.isUploading,
-    formData,
-    imageState.file,
-    project,
-    uploadImage,
-    deleteImage,
-    onSuccess
-  ]);
-
-  const handleImageError = () => {
-    setImageState(prev => ({ ...prev, error: 'Ảnh không tồn tại trên server' }));
   };
 
-  const isLoading = isSubmitting || uploadState.isUploading;
+  const isLoading = isSubmitting || isUploading;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-2xl font-bold">
               {project ? 'Chỉnh sửa dự án' : 'Thêm dự án mới'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100"
+              className="text-gray-500 hover:text-gray-700"
               disabled={isLoading}
             >
               <FaTimes className="text-xl" />
@@ -362,9 +327,9 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
               Hình ảnh dự án
             </label>
             
-            {imageState.preview ? (
+            {imagePreview ? (
               <div className="relative inline-block">
-                {imageState.error ? (
+                {imageError ? (
                   <div className="w-32 h-32 bg-red-50 rounded-lg border border-red-300 flex items-center justify-center">
                     <div className="text-center">
                       <FaExclamationTriangle className="mx-auto text-red-400 text-2xl mb-1" />
@@ -373,10 +338,11 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
                   </div>
                 ) : (
                   <img
-                    src={imageState.preview}
+                    src={imagePreview}
                     alt="Preview"
                     className="w-32 h-32 object-cover rounded-lg border border-gray-300"
-                    onError={handleImageError}
+                    onError={() => setImageError(true)}
+                    onLoad={() => setImageError(false)}
                   />
                 )}
                 
@@ -392,7 +358,7 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
             ) : (
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <FaImage className="mx-auto text-4xl text-gray-400 mb-2" />
-                <p className="text-gray-500 mb-2">Chọn hình ảnh cho dự án (tối đa 10MB)</p>
+                <p className="text-gray-500 mb-2">Chọn hình ảnh cho dự án</p>
                 <input
                   type="file"
                   accept="image/*"
@@ -412,25 +378,18 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
               </div>
             )}
 
-            {uploadState.isUploading && (
+            {isUploading && (
               <div className="mt-3">
                 <div className="bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadState.progress}%` }}
+                    style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
                 <p className="text-sm text-gray-600 mt-1 flex items-center">
                   <FaSpinner className="animate-spin mr-2" />
-                  Đang upload: {uploadState.progress}%
+                  Đang upload: {uploadProgress}%
                 </p>
-              </div>
-            )}
-
-            {imageState.error && (
-              <div className="mt-2 text-sm text-orange-600 flex items-center">
-                <FaExclamationTriangle className="mr-2" />
-                {imageState.error}
               </div>
             )}
           </div>
@@ -588,7 +547,7 @@ const AdminProjectModal = ({ project, onClose, onSuccess }) => {
               {isLoading ? (
                 <>
                   <FaSpinner className="animate-spin" />
-                  <span>{uploadState.isUploading ? 'Đang upload...' : 'Đang lưu...'}</span>
+                  <span>{isUploading ? 'Đang upload...' : 'Đang lưu...'}</span>
                 </>
               ) : (
                 <span>{project ? 'Cập nhật' : 'Thêm mới'}</span>
