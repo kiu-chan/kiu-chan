@@ -13,16 +13,6 @@ export function useApi() {
 export function ApiProvider({ children }) {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-  // Utility function để tạo filename unique
-  const generateUniqueFilename = (originalName) => {
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const extension = originalName.split('.').pop();
-    const nameWithoutExt = originalName.replace(/\.[^/.]+$/, "");
-    const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, '');
-    return `${timestamp}-${randomString}-${cleanName}.${extension}`;
-  };
-
   // Nén ảnh với canvas
   const compressImage = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) => {
     return new Promise((resolve, reject) => {
@@ -37,7 +27,6 @@ export function ApiProvider({ children }) {
 
       img.onload = () => {
         try {
-          // Tính toán kích thước mới giữ nguyên tỷ lệ
           let { width, height } = img;
           
           if (width > height) {
@@ -52,18 +41,13 @@ export function ApiProvider({ children }) {
             }
           }
 
-          // Set canvas size
           canvas.width = width;
           canvas.height = height;
 
-          // Enable high quality rendering
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
-
-          // Draw image
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Convert to blob
           canvas.toBlob(
             (blob) => {
               if (!blob) {
@@ -95,39 +79,32 @@ export function ApiProvider({ children }) {
     });
   };
 
-  // Validate file trước khi upload
-  const validateFile = (file) => {
-    if (!file) {
-      throw new Error('Vui lòng chọn file');
-    }
-
-    if (!file.type.startsWith('image/')) {
-      throw new Error('Chỉ chấp nhận file hình ảnh (jpg, png, gif, webp)');
-    }
-
-    // Giới hạn 10MB cho file gốc
-    const maxOriginalSize = 10 * 1024 * 1024;
-    if (file.size > maxOriginalSize) {
-      throw new Error('File quá lớn. Kích thước tối đa là 10MB');
-    }
-
-    return true;
-  };
-
-  // Upload image với xử lý đầy đủ
+  // Upload image
   const uploadImage = async (file, progressCallback) => {
     return new Promise(async (resolve, reject) => {
       try {
-        // Validate file
-        validateFile(file);
+        if (!file) {
+          reject(new Error('Vui lòng chọn file'));
+          return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+          reject(new Error('Chỉ chấp nhận file hình ảnh'));
+          return;
+        }
+
+        const maxOriginalSize = 10 * 1024 * 1024;
+        if (file.size > maxOriginalSize) {
+          reject(new Error('File quá lớn. Kích thước tối đa là 10MB'));
+          return;
+        }
 
         let fileToUpload = file;
 
-        // Nén ảnh nếu file > 2MB hoặc kích thước lớn
+        // Nén ảnh nếu cần
         if (file.size > 2 * 1024 * 1024) {
           console.log('Compressing large image...');
           
-          // Điều chỉnh quality dựa trên size
           let quality = 0.8;
           let maxDimension = 1200;
           
@@ -141,24 +118,18 @@ export function ApiProvider({ children }) {
 
           fileToUpload = await compressImage(file, maxDimension, maxDimension, quality);
 
-          // Nếu vẫn lớn, nén thêm
           if (fileToUpload.size > 3 * 1024 * 1024) {
             console.log('Still large, compressing more...');
             fileToUpload = await compressImage(fileToUpload, 600, 600, 0.5);
           }
         }
 
-        // Tạo FormData
         const formData = new FormData();
         formData.append('image', fileToUpload);
 
-        // Create XMLHttpRequest
         const xhr = new XMLHttpRequest();
-
-        // Set timeout
         xhr.timeout = 120000; // 2 minutes
 
-        // Progress handler
         xhr.upload.addEventListener('progress', (e) => {
           if (e.lengthComputable && progressCallback) {
             const progress = Math.round((e.loaded / e.total) * 100);
@@ -166,7 +137,6 @@ export function ApiProvider({ children }) {
           }
         });
 
-        // Success handler
         xhr.addEventListener('load', () => {
           try {
             if (xhr.status === 200) {
@@ -188,7 +158,6 @@ export function ApiProvider({ children }) {
                 reject(new Error(response.message || 'Upload thất bại'));
               }
             } else {
-              // Handle HTTP errors
               let errorMessage = 'Upload thất bại';
               
               switch (xhr.status) {
@@ -216,7 +185,6 @@ export function ApiProvider({ children }) {
           }
         });
 
-        // Error handlers
         xhr.addEventListener('error', () => {
           reject(new Error('Lỗi kết nối mạng. Vui lòng kiểm tra internet'));
         });
@@ -229,12 +197,7 @@ export function ApiProvider({ children }) {
           reject(new Error('Upload bị hủy'));
         });
 
-        // Send request
         xhr.open('POST', `${API_BASE_URL}/api/upload-image`);
-        
-        // Set headers if needed
-        // xhr.setRequestHeader('Accept', 'application/json');
-        
         xhr.send(formData);
 
       } catch (error) {
@@ -247,7 +210,7 @@ export function ApiProvider({ children }) {
   const deleteImage = async (filename) => {
     try {
       if (!filename) {
-        return true; // No file to delete
+        return true;
       }
 
       console.log('Deleting image:', filename);
@@ -277,7 +240,8 @@ export function ApiProvider({ children }) {
       }
     } catch (error) {
       console.error('Delete image error:', error);
-      throw new Error('Không thể xóa ảnh: ' + error.message);
+      // Don't throw error for delete operations, just log and return false
+      return false;
     }
   };
 
@@ -323,20 +287,17 @@ export function ApiProvider({ children }) {
     return `${API_BASE_URL}/uploads/${filename}`;
   };
 
-  // Get image info
-  const getImageInfo = async (filename) => {
+  // Safe image URL - returns a URL that won't cause 404 errors
+  const getSafeImageURL = async (imageData) => {
+    const url = getImageURL(imageData);
+    if (!url) return null;
+
     try {
-      if (!filename) return null;
-
-      const response = await fetch(`${API_BASE_URL}/api/image-info/${encodeURIComponent(filename)}`);
-      
-      if (!response.ok) {
-        return null;
-      }
-
-      return await response.json();
+      // Try to fetch the image to check if it exists
+      const response = await fetch(url, { method: 'HEAD' });
+      return response.ok ? url : null;
     } catch (error) {
-      console.error('Get image info error:', error);
+      console.error('Error checking image URL:', error);
       return null;
     }
   };
@@ -346,9 +307,8 @@ export function ApiProvider({ children }) {
     deleteImage,
     checkImageExists,
     getImageURL,
-    getImageInfo,
+    getSafeImageURL,
     compressImage,
-    validateFile,
     API_BASE_URL
   };
 

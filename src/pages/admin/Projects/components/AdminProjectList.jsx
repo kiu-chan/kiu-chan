@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaEdit, FaTrash, FaImage } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaImage, FaExclamationTriangle } from 'react-icons/fa';
 import LoadingIndicator from '../../../../components/LoadingIndicator';
 import { useApi } from '../../../../contexts/ApiContext';
 
@@ -10,12 +10,31 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
     projectId: null,
     projectName: ''
   });
+  const [imageErrors, setImageErrors] = useState(new Set());
 
   const getProjectImage = (project) => {
+    if (!project) return null;
+    
+    // Ưu tiên imageUrl, sau đó imageFilename
     if (project.imageUrl) {
       return getImageURL(project.imageUrl);
     }
+    if (project.imageFilename) {
+      return getImageURL(project.imageFilename);
+    }
     return null;
+  };
+
+  const handleImageError = (projectId) => {
+    setImageErrors(prev => new Set(prev).add(projectId));
+  };
+
+  const handleImageLoad = (projectId) => {
+    setImageErrors(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(projectId);
+      return newSet;
+    });
   };
 
   const handleDeleteClick = (projectId, projectName) => {
@@ -50,7 +69,9 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
   if (projects.length === 0) {
     return (
       <div className="text-center py-12 bg-white rounded-lg shadow">
-        <p className="text-gray-600 text-lg">No projects found</p>
+        <FaImage className="mx-auto text-4xl text-gray-400 mb-4" />
+        <p className="text-gray-600 text-lg">Chưa có dự án nào</p>
+        <p className="text-gray-500 text-sm mt-2">Nhấn "Add New Project" để thêm dự án đầu tiên</p>
       </div>
     );
   }
@@ -70,71 +91,108 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {projects.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-3 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full mr-3 overflow-hidden bg-gray-200 flex items-center justify-center">
-                        {getProjectImage(project) ? (
-                          <img 
-                            src={getProjectImage(project)}
-                            alt={project.name} 
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <FaImage className="text-gray-500" style={{ display: getProjectImage(project) ? 'none' : 'block' }} />
+              {projects.map((project) => {
+                const imageUrl = getProjectImage(project);
+                const hasImageError = imageErrors.has(project.id);
+                
+                return (
+                  <tr key={project.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full mr-3 overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+                          {imageUrl && !hasImageError ? (
+                            <img 
+                              src={imageUrl}
+                              alt={project.name} 
+                              className="h-full w-full object-cover"
+                              onError={() => handleImageError(project.id)}
+                              onLoad={() => handleImageLoad(project.id)}
+                            />
+                          ) : hasImageError ? (
+                            <FaExclamationTriangle 
+                              className="text-orange-500 text-sm" 
+                              title="Không thể tải ảnh"
+                            />
+                          ) : (
+                            <FaImage 
+                              className="text-gray-400 text-sm" 
+                              title="Không có ảnh"
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="font-medium text-gray-900 truncate block">
+                            {project.name}
+                          </span>
+                          {project.description && (
+                            <span className="text-sm text-gray-500 truncate block">
+                              {project.description.substring(0, 50)}
+                              {project.description.length > 50 ? '...' : ''}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <span className="font-medium text-gray-900">{project.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                      {project.type === 'mobile_app' ? 'Mobile App' : 
-                       project.type === 'web_app' ? 'Web App' : 
-                       project.type === 'desktop_app' ? 'Desktop App' :
-                       project.type === 'api' ? 'API/Backend' : 
-                       'Other'}
-                    </span>
-                  </td>
-                  <td className="p-3 text-gray-600">{project.year}</td>
-                  <td className="p-3">
-                    <div className="flex flex-wrap gap-1">
-                      {project.technologies && project.technologies.slice(0, 3).map((tech, index) => (
-                        <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
-                          {tech}
-                        </span>
-                      ))}
-                      {project.technologies && project.technologies.length > 3 && (
-                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
-                          +{project.technologies.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex justify-center space-x-2">
-                      <button
-                        onClick={() => onEdit(project)}
-                        className="text-blue-600 hover:text-blue-800 p-1"
-                        title="Edit Project"
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(project.id, project.name)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="Delete Project"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        project.type === 'mobile_app' ? 'bg-green-100 text-green-800' :
+                        project.type === 'web_app' ? 'bg-blue-100 text-blue-800' :
+                        project.type === 'desktop_app' ? 'bg-purple-100 text-purple-800' :
+                        project.type === 'api' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {project.type === 'mobile_app' ? 'Mobile App' : 
+                         project.type === 'web_app' ? 'Web App' : 
+                         project.type === 'desktop_app' ? 'Desktop App' :
+                         project.type === 'api' ? 'API/Backend' : 
+                         'Other'}
+                      </span>
+                    </td>
+                    <td className="p-3 text-gray-600 font-medium">{project.year}</td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-1">
+                        {project.technologies && project.technologies.length > 0 ? (
+                          <>
+                            {project.technologies.slice(0, 3).map((tech, index) => (
+                              <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                                {tech}
+                              </span>
+                            ))}
+                            {project.technologies.length > 3 && (
+                              <span 
+                                className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded cursor-help"
+                                title={project.technologies.slice(3).join(', ')}
+                              >
+                                +{project.technologies.length - 3}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">No technologies listed</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex justify-center space-x-2">
+                        <button
+                          onClick={() => onEdit(project)}
+                          className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                          title="Edit Project"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(project.id, project.name)}
+                          className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors"
+                          title="Delete Project"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -142,27 +200,39 @@ const AdminProjectList = ({ projects, loading, onEdit, onDelete }) => {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Confirm Delete
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete "{deleteConfirmation.projectName}"? 
-              This action cannot be undone.
-            </p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <FaTrash className="text-red-600" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Xác nhận xóa
+                </h3>
+              </div>
+            </div>
+            <div className="mb-6">
+              <p className="text-gray-600">
+                Bạn có chắc chắn muốn xóa dự án{' '}
+                <span className="font-semibold text-gray-900">"{deleteConfirmation.projectName}"</span>?
+              </p>
+              <p className="text-sm text-red-600 mt-2">
+                Hành động này không thể hoàn tác và sẽ xóa toàn bộ dữ liệu liên quan.
+              </p>
+            </div>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={handleCancelDelete}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
               >
-                Delete
+                Xóa dự án
               </button>
             </div>
           </div>
