@@ -7,7 +7,7 @@ export function useApi() {
 }
 
 export function ApiProvider({ children }) {
-  const API_BASE_URL = 'http://localhost:3001/api';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   // Upload ảnh lên server
   const uploadImage = async (file, progressCallback) => {
@@ -38,7 +38,7 @@ export function ApiProvider({ children }) {
             const response = JSON.parse(xhr.responseText);
             if (response.success) {
               resolve({
-                url: `http://localhost:3001${response.url}`,
+                url: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}${response.url}`,
                 filename: response.filename,
                 originalName: response.originalName,
                 name: file.name,
@@ -96,11 +96,11 @@ export function ApiProvider({ children }) {
     
     // Nếu filename bắt đầu bằng /uploads/
     if (filename.startsWith('/uploads/')) {
-      return `http://localhost:3001${filename}`;
+      return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}${filename}`;
     }
     
     // Nếu chỉ là tên file
-    return `http://localhost:3001/uploads/${filename}`;
+    return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/uploads/${filename}`;
   };
 
   const value = {
