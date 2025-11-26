@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   FaChartLine, 
   FaProjectDiagram,
+  FaNewspaper,
   FaSignOutAlt, 
   FaTimes, 
   FaBars
@@ -19,6 +20,11 @@ const MENU_ITEMS = [
     name: 'Projects', 
     path: '/admin/projects', 
     icon: FaProjectDiagram 
+  },
+  { 
+    name: 'Posts', 
+    path: '/admin/posts', 
+    icon: FaNewspaper 
   }
 ];
 
@@ -70,7 +76,7 @@ function AdminSidebar({ isOpen, toggleSidebar }) {
               <Link 
                 to={item.path}
                 className={`flex items-center p-4 transition-colors duration-300 
-                  ${location.pathname === item.path 
+                  ${location.pathname === item.path || location.pathname.startsWith(item.path + '/')
                     ? 'bg-blue-700 text-white' 
                     : 'hover:bg-blue-700 text-blue-200'
                   }`}
