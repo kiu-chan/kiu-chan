@@ -50,13 +50,13 @@ const publicRoutes = [
   },
   // Posts list
   {
-    path: "/posts",
+    path: "/blogs",
     component: PostList,
     layout: DefaultLayout,
   },
   // Post detail (by document id)
   {
-    path: "/posts/:id",
+    path: "/blogs/:id",
     component: PostDetail,
     layout: DefaultLayout,
   },
