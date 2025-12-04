@@ -6,28 +6,13 @@ function AdminFooter() {
   return (
     <footer className="bg-white shadow-md p-4 text-center">
       <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
-        <p className="text-sm text-gray-600 mb-2 md:mb-0">
-          © {currentYear} Admin Dashboard. All rights reserved.
-        </p>
-        <div className="flex space-x-4 text-sm text-gray-500">
-          <a 
-            href="/admin/privacy" 
-            className="hover:text-blue-600 transition-colors"
-          >
-            Privacy Policy
-          </a>
-          <a 
-            href="/admin/terms" 
-            className="hover:text-blue-600 transition-colors"
-          >
-            Terms of Service
-          </a>
-          <a 
-            href="/admin/support" 
-            className="hover:text-blue-600 transition-colors"
-          >
-            Support
-          </a>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center">
+          <p className="text-sm">© {currentYear} Khanh. All rights reserved.</p>
+          <p className="text-sm mt-2 sm:mt-0">
+            <span>Designed with </span>
+            <span className="text-red-300">❤</span>
+            <span> by Khanh</span>
+          </p>
         </div>
       </div>
     </footer>
