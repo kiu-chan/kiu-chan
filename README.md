@@ -8,11 +8,9 @@
 </h1>
 <div> <div>
 
-- I am a passionate software engineer at the [Geoinformatics research center](http://girc.tuaf.edu.vn/)
-
 - 🎓 I have graduated with a bachelor's degree in Information Technology from [VNU University of Engineering and Technology - Vietnam National University, Hanoi](https://uet.vnu.edu.vn/)
 
-- 💼 I previously worked as a cross-platform mobile application developer at the GIS Research Center – Thai Nguyen University of Agriculture and Forestry
+- 💼 I previously worked as a cross-platform mobile application developer at the [Geoinformatics research center](http://girc.tuaf.edu.vn/) – Thai Nguyen University of Agriculture and Forestry
 
 - 🚀 I am currently a Top Rated freelance developer on [Upwork](https://www.upwork.com/freelancers/~01d24caf1ae94d0f14).
 
