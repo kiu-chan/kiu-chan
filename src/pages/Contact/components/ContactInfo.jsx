@@ -1,7 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaGithub, FaWhatsapp, FaFacebook } from 'react-icons/fa';
+import { db } from '../../../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+const DEFAULT_DATA = {
+  email: "khanhk66uet@gmail.com",
+  location: "VNU University of Engineering and Technology, Hanoi, Vietnam",
+  currentPosition: "GIS Research Center - Thai Nguyen University",
+  githubUrl: "https://github.com/kiu-chan",
+  facebookUrl: "https://www.facebook.com/hoang.bao.khanh.498513",
+  whatsappNumber: "84974022602"
+};
 
 function ContactInfo() {
+  const [info, setInfo] = useState(DEFAULT_DATA);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const docRef = doc(db, 'pageContent', 'contact');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setInfo({ ...DEFAULT_DATA, ...docSnap.data() });
+        }
+      } catch (error) {
+        console.error('Error fetching contact info:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">Contact Information</h2>
@@ -16,7 +44,7 @@ function ContactInfo() {
           <div className="ml-4">
             <h3 className="text-lg font-medium text-gray-900">Email</h3>
             <p className="mt-1 text-gray-600">
-              <a href="mailto:khanhk66uet@gmail.com" className="text-blue-600 hover:underline">khanhk66uet@gmail.com</a>
+              <a href={`mailto:${info.email}`} className="text-blue-600 hover:underline">{info.email}</a>
             </p>
           </div>
         </div>
@@ -30,7 +58,7 @@ function ContactInfo() {
           </div>
           <div className="ml-4">
             <h3 className="text-lg font-medium text-gray-900">Location</h3>
-            <p className="mt-1 text-gray-600">VNU University of Engineering and Technology, Hanoi, Vietnam</p>
+            <p className="mt-1 text-gray-600">{info.location}</p>
           </div>
         </div>
         
@@ -42,7 +70,7 @@ function ContactInfo() {
           </div>
           <div className="ml-4">
             <h3 className="text-lg font-medium text-gray-900">Current Position</h3>
-            <p className="mt-1 text-gray-600">GIS Research Center - Thai Nguyen University</p>
+            <p className="mt-1 text-gray-600">{info.currentPosition}</p>
           </div>
         </div>
       </div>
@@ -51,7 +79,7 @@ function ContactInfo() {
         <h3 className="text-lg font-medium text-gray-900 mb-4">Connect With Me</h3>
         <div className="flex space-x-4">
           <a 
-            href="https://github.com/kiu-chan" 
+            href={info.githubUrl} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition duration-300"
@@ -60,7 +88,7 @@ function ContactInfo() {
             <FaGithub className="w-5 h-5 text-gray-700" />
           </a>
           <a 
-            href="https://www.facebook.com/hoang.bao.khanh.498513" 
+            href={info.facebookUrl} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition duration-300"
@@ -69,7 +97,7 @@ function ContactInfo() {
             <FaFacebook className="w-5 h-5 text-gray-700" />
           </a>
           <a 
-            href="https://wa.me/84974022602" 
+            href={`https://wa.me/${info.whatsappNumber}`} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition duration-300"

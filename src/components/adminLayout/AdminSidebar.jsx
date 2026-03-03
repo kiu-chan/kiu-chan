@@ -6,7 +6,11 @@ import {
   FaNewspaper,
   FaSignOutAlt, 
   FaTimes, 
-  FaBars
+  FaBars,
+  FaHome,
+  FaUser,
+  FaCode,
+  FaEnvelope
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -25,6 +29,26 @@ const MENU_ITEMS = [
     name: 'Posts', 
     path: '/admin/posts', 
     icon: FaNewspaper 
+  },
+  {
+    name: 'Home Page',
+    path: '/admin/home',
+    icon: FaHome
+  },
+  {
+    name: 'About Page',
+    path: '/admin/about',
+    icon: FaUser
+  },
+  {
+    name: 'Skills Page',
+    path: '/admin/skills',
+    icon: FaCode
+  },
+  {
+    name: 'Contact Page',
+    path: '/admin/contact',
+    icon: FaEnvelope
   }
 ];
 

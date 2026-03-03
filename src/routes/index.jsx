@@ -16,6 +16,12 @@ import PostList from "../pages/Post"; // src/pages/Post/index.jsx
 import PostDetail from "../pages/Post/PostDetail"; // src/pages/Post/PostDetail.jsx
 import AdminPosts from "../pages/admin/Posts";
 
+// Admin page content editors
+import AdminHomePage from "../pages/admin/Home";
+import AdminAboutPage from "../pages/admin/About";
+import AdminSkillsPage from "../pages/admin/Skills";
+import AdminContactPage from "../pages/admin/Contact";
+
 // Routes sử dụng DefaultLayout
 const publicRoutes = [
   {
@@ -82,6 +88,26 @@ const privateRoutes = [
   {
     path: "/admin/posts",
     component: AdminPosts,
+    layout: AdminLayout,
+  },
+  {
+    path: "/admin/home",
+    component: AdminHomePage,
+    layout: AdminLayout,
+  },
+  {
+    path: "/admin/about",
+    component: AdminAboutPage,
+    layout: AdminLayout,
+  },
+  {
+    path: "/admin/skills",
+    component: AdminSkillsPage,
+    layout: AdminLayout,
+  },
+  {
+    path: "/admin/contact",
+    component: AdminContactPage,
     layout: AdminLayout,
   },
 ];

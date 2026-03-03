@@ -1,57 +1,61 @@
+import React, { useEffect, useState } from 'react';
+import { db } from '../../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+const DEFAULT_DATA = {
+  programmingLanguages: [
+    { name: 'C/C++', level: 80, proficiency: 'Advanced' },
+    { name: 'Python', level: 80, proficiency: 'Advanced' },
+    { name: 'Java', level: 80, proficiency: 'Advanced' },
+    { name: 'JavaScript', level: 80, proficiency: 'Advanced' },
+    { name: 'Dart', level: 80, proficiency: 'Advanced' },
+    { name: 'HTML/CSS', level: 80, proficiency: 'Advanced' }
+  ],
+  frameworks: [
+    { name: 'Flutter', level: 90, proficiency: 'Expert' },
+    { name: 'React', level: 80, proficiency: 'Advanced' },
+    { name: 'Node.js', level: 80, proficiency: 'Advanced' },
+    { name: 'Laravel', level: 60, proficiency: 'Intermediate' }
+  ],
+  tools: [
+    { name: 'Git & GitHub', level: 80, proficiency: 'Advanced' },
+    { name: 'AWS', level: 60, proficiency: 'Intermediate' },
+    { name: 'Firebase', level: 80, proficiency: 'Advanced' },
+    { name: 'Figma', level: 60, proficiency: 'Intermediate' },
+    { name: 'Android Studio', level: 80, proficiency: 'Advanced' },
+    { name: 'VSCode', level: 80, proficiency: 'Advanced' }
+  ],
+  databases: [
+    { name: 'MongoDB', level: 80, proficiency: 'Advanced' },
+    { name: 'MySQL', level: 80, proficiency: 'Advanced' },
+    { name: 'PostgreSQL', level: 60, proficiency: 'Intermediate' }
+  ],
+  devPractices: ['Agile Methodology', 'CI/CD', 'Test-Driven Development', 'Clean Code Practices'],
+  softSkills: ['Technical Leadership', 'Project Management', 'Team Collaboration', 'Problem Solving']
+};
+
 function Skills() {
-    // Programming Languages
-    const programmingLanguages = [
-      { name: 'C/C++', level: 80, proficiency: 'Advanced' },
-      { name: 'Python', level: 80, proficiency: 'Advanced' },
-      { name: 'Java', level: 80, proficiency: 'Advanced' },
-      { name: 'JavaScript', level: 80, proficiency: 'Advanced' },
-      { name: 'Dart', level: 80, proficiency: 'Advanced' },
-      { name: 'HTML/CSS', level: 80, proficiency: 'Advanced' }
-    ];
-  
-    // Frameworks & Libraries
-    const frameworks = [
-      { name: 'Flutter', level: 90, proficiency: 'Expert' },
-      { name: 'React', level: 80, proficiency: 'Advanced' },
-      { name: 'Node.js', level: 80, proficiency: 'Advanced' },
-      { name: 'Laravel', level: 60, proficiency: 'Intermediate' }
-    ];
-  
-    // Tools & Platforms
-    const tools = [
-      { name: 'Git & GitHub', level: 80, proficiency: 'Advanced' },
-      { name: 'AWS', level: 60, proficiency: 'Intermediate' },
-      { name: 'Firebase', level: 80, proficiency: 'Advanced' },
-      { name: 'Figma', level: 60, proficiency: 'Intermediate' },
-      { name: 'Android Studio', level: 80, proficiency: 'Advanced' },
-      { name: 'VSCode', level: 80, proficiency: 'Advanced' }
-    ];
-  
-    // Databases
-    const databases = [
-      { name: 'MongoDB', level: 80, proficiency: 'Advanced' },
-      { name: 'MySQL', level: 80, proficiency: 'Advanced' },
-      { name: 'PostgreSQL', level: 60, proficiency: 'Intermediate' }
-    ];
-  
-    // Development Practices
-    const devPractices = [
-      'Agile Methodology',
-      'CI/CD',
-      'Test-Driven Development',
-      'Clean Code Practices'
-    ];
-  
-    // Soft Skills
-    const softSkills = [
-      'Technical Leadership',
-      'Project Management',
-      'Team Collaboration',
-      'Problem Solving'
-    ];
-  
-    // Render skill progress bar
-    const renderSkillBar = (skill) => {
+  const [content, setContent] = useState(DEFAULT_DATA);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const docRef = doc(db, 'pageContent', 'skills');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setContent({ ...DEFAULT_DATA, ...docSnap.data() });
+        }
+      } catch (error) {
+        console.error('Error fetching skills content:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const renderSkillBar = (skill) => {
       return (
         <div key={skill.name} className="mb-6">
           <div className="flex justify-between mb-1">
@@ -67,7 +71,15 @@ function Skills() {
         </div>
       );
     };
-  
+
+  if (loading) {
+    return (
+      <div className="pt-16 flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
     return (
       <div className="pt-16">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12">
@@ -92,7 +104,7 @@ function Skills() {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Programming Languages</h2>
                 <div>
-                  {programmingLanguages.map(skill => renderSkillBar(skill))}
+                  {content.programmingLanguages.map(skill => renderSkillBar(skill))}
                 </div>
               </div>
               
@@ -100,7 +112,7 @@ function Skills() {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Frameworks & Libraries</h2>
                 <div>
-                  {frameworks.map(skill => renderSkillBar(skill))}
+                  {content.frameworks.map(skill => renderSkillBar(skill))}
                 </div>
               </div>
               
@@ -108,7 +120,7 @@ function Skills() {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Tools & Platforms</h2>
                 <div>
-                  {tools.map(skill => renderSkillBar(skill))}
+                  {content.tools.map(skill => renderSkillBar(skill))}
                 </div>
               </div>
               
@@ -116,7 +128,7 @@ function Skills() {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Databases</h2>
                 <div>
-                  {databases.map(skill => renderSkillBar(skill))}
+                  {content.databases.map(skill => renderSkillBar(skill))}
                 </div>
               </div>
             </div>
@@ -130,7 +142,7 @@ function Skills() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Development Practices</h3>
                   <ul className="list-disc list-inside space-y-2 text-gray-700">
-                    {devPractices.map((practice, index) => (
+                    {content.devPractices.map((practice, index) => (
                       <li key={index}>{practice}</li>
                     ))}
                   </ul>
@@ -140,7 +152,7 @@ function Skills() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Soft Skills</h3>
                   <ul className="list-disc list-inside space-y-2 text-gray-700">
-                    {softSkills.map((skill, index) => (
+                    {content.softSkills.map((skill, index) => (
                       <li key={index}>{skill}</li>
                     ))}
                   </ul>
