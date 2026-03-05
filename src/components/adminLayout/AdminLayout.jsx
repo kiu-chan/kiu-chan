@@ -6,32 +6,18 @@ import AdminFooter from './AdminFooter';
 function AdminLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
-      {/* Sidebar */}
-      <AdminSidebar 
-        isOpen={isSidebarOpen} 
-        toggleSidebar={toggleSidebar} 
-      />
+      <AdminSidebar isOpen={isSidebarOpen} />
 
-      {/* Main Content Area */}
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'}`}>
-        {/* Header */}
-        <AdminHeader 
-          isSidebarOpen={isSidebarOpen} 
-          toggleSidebar={toggleSidebar} 
+      <div className="flex flex-col flex-1 min-w-0">
+        <AdminHeader
+          isSidebarOpen={isSidebarOpen}
+          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 bg-gray-50">
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50/80">
           {children}
         </main>
-
-        {/* Footer */}
         <AdminFooter />
       </div>
     </div>

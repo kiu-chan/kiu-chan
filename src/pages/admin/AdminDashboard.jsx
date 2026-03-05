@@ -1,116 +1,142 @@
-// src/admin/pages/Dashboard.jsx
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { db } from '../../firebase';
+import { collection, getDocs, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
+import { FaNewspaper, FaProjectDiagram, FaEye, FaPlus } from 'react-icons/fa';
+
+function StatCard({ icon: Icon, label, value, color, loading }) {
+  return (
+    <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
+        <Icon className="text-xl text-white" />
+      </div>
+      <div>
+        <p className="text-sm text-gray-500">{label}</p>
+        {loading ? (
+          <div className="h-7 w-16 bg-gray-100 animate-pulse rounded mt-1" />
+        ) : (
+          <p className="text-2xl font-bold text-gray-800">{value}</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function AdminDashboard() {
+  const [stats, setStats] = useState({ posts: 0, projects: 0, visitors: 0 });
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [recentProjects, setRecentProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [postsSnap, projectsSnap, visitorSnap, recentPostsSnap, recentProjectsSnap] =
+          await Promise.all([
+            getDocs(collection(db, 'posts')),
+            getDocs(collection(db, 'projects')),
+            getDoc(doc(db, 'Visitors', 'count')),
+            getDocs(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(5))),
+            getDocs(query(collection(db, 'projects'), orderBy('createdAt', 'desc'), limit(5))),
+          ]);
+
+        setStats({
+          posts: postsSnap.size,
+          projects: projectsSnap.size,
+          visitors: visitorSnap.exists() ? visitorSnap.data().count : 0,
+        });
+
+        setRecentPosts(recentPostsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setRecentProjects(recentProjectsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, []);
+
+  const formatDate = (val) => {
+    if (!val) return '—';
+    const d = val?.toDate ? val.toDate() : new Date(val);
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6 text-blue-800">Admin Dashboard</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Users Widget */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-blue-100">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-2">Total Users</h2>
-              <p className="text-3xl font-bold text-blue-600">254</p>
-            </div>
-            <div className="bg-blue-100 p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-green-500 mt-2">+5% from last month</p>
-        </div>
+    <div className="max-w-5xl space-y-6">
+      <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
 
-        {/* Total Revenue Widget */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-blue-100">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-2">Total Revenue</h2>
-              <p className="text-3xl font-bold text-blue-600">$45,231</p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-green-500 mt-2">+12% from last month</p>
-        </div>
-
-        {/* Total Orders Widget */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-blue-100">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-2">Total Orders</h2>
-              <p className="text-3xl font-bold text-blue-600">126</p>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-green-500 mt-2">+3% from last month</p>
-        </div>
-
-        {/* Pending Tasks Widget */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-blue-100">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-2">Pending Tasks</h2>
-              <p className="text-3xl font-bold text-blue-600">12</p>
-            </div>
-            <div className="bg-red-100 p-3 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-red-500 mt-2">2 overdue</p>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard icon={FaEye}            label="Lượt xem" value={stats.visitors.toLocaleString()} color="bg-blue-500"   loading={loading} />
+        <StatCard icon={FaNewspaper}      label="Bài viết" value={stats.posts}                     color="bg-indigo-500" loading={loading} />
+        <StatCard icon={FaProjectDiagram} label="Projects" value={stats.projects}                  color="bg-violet-500" loading={loading} />
       </div>
 
-      {/* Quick Actions */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border border-blue-100">
-          <h2 className="text-lg font-semibold mb-4 text-blue-800">Quick Actions</h2>
-          <div className="space-y-4">
-            <button className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors">
-              Create New Product
-            </button>
-            <button className="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition-colors">
-              Add New User
-            </button>
+      {/* Recent */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Recent Posts */}
+        <div className="bg-white rounded-lg shadow p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-800">Bài viết gần đây</h2>
+            <Link to="/admin/posts" className="text-blue-600 text-sm hover:underline flex items-center gap-1">
+              <FaPlus size={11} /> Thêm
+            </Link>
           </div>
+
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded" />)}
+            </div>
+          ) : recentPosts.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">Chưa có bài viết nào.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {recentPosts.map(post => (
+                <li key={post.id} className="py-2.5 flex items-start justify-between gap-2">
+                  <p className="text-sm text-gray-700 truncate flex-1">{post.title || 'Untitled'}</p>
+                  <span className="text-xs text-gray-400 flex-shrink-0">{formatDate(post.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <Link to="/admin/posts" className="block mt-4 text-center text-xs text-blue-500 hover:underline">
+            Xem tất cả →
+          </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border border-blue-100">
-          <h2 className="text-lg font-semibold mb-4 text-blue-800">Recent Activity</h2>
-          <ul className="space-y-3">
-            <li className="flex items-center justify-between border-b pb-2">
-              <div>
-                <p className="text-sm font-medium">New order received</p>
-                <p className="text-xs text-gray-500">2 minutes ago</p>
-              </div>
-              <span className="text-green-600 text-sm">+$128.00</span>
-            </li>
-            <li className="flex items-center justify-between border-b pb-2">
-              <div>
-                <p className="text-sm font-medium">Product added to catalog</p>
-                <p className="text-xs text-gray-500">1 hour ago</p>
-              </div>
-              <span className="text-blue-600 text-sm">Smartphone X</span>
-            </li>
-            <li className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">User registration</p>
-                <p className="text-xs text-gray-500">3 hours ago</p>
-              </div>
-              <span className="text-purple-600 text-sm">John Doe</span>
-            </li>
-          </ul>
+        {/* Recent Projects */}
+        <div className="bg-white rounded-lg shadow p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-800">Projects gần đây</h2>
+            <Link to="/admin/projects" className="text-blue-600 text-sm hover:underline flex items-center gap-1">
+              <FaPlus size={11} /> Thêm
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded" />)}
+            </div>
+          ) : recentProjects.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">Chưa có project nào.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {recentProjects.map(project => (
+                <li key={project.id} className="py-2.5 flex items-start justify-between gap-2">
+                  <p className="text-sm text-gray-700 truncate flex-1">{project.title || 'Untitled'}</p>
+                  <span className="text-xs text-gray-400 flex-shrink-0">{formatDate(project.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <Link to="/admin/projects" className="block mt-4 text-center text-xs text-blue-500 hover:underline">
+            Xem tất cả →
+          </Link>
         </div>
       </div>
     </div>

@@ -16,7 +16,13 @@ const DEFAULT_CONTENT = {
     "🙋‍♂️ Autonomous",
     "🕺 & More to discover ..."
   ],
-  githubUsername: "kiu-chan"
+  githubUsername: "kiu-chan",
+  skillGroups: [
+    { title: 'Languages & Technologies', icons: ['c', 'cpp', 'css', 'dart', 'html', 'java', 'js', 'py'] },
+    { title: 'Frameworks & Tools', icons: ['anaconda', 'androidstudio', 'flutter', 'react', 'laravel', 'nodejs'] },
+    { title: 'Development Tools', icons: ['aws', 'figma', 'firebase', 'git', 'github', 'gradle', 'idea', 'maven', 'postman', 'vscode'] },
+    { title: 'Databases', icons: ['mongodb', 'mysql', 'postgres'] },
+  ],
 };
 
 const Home = () => {
@@ -109,38 +115,18 @@ const Home = () => {
         <section className="bg-white rounded-lg shadow p-8">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">Technical Skills</h2>
           <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-medium text-gray-800 mb-4">Languages & Technologies</h3>
-              <img 
-                src="https://skillicons.dev/icons?i=c,cpp,css,dart,html,java,js,py" 
-                alt="Programming Languages"
-                className="w-full"
-              />
-            </div>
-            <div>
-              <h3 className="text-xl font-medium text-gray-800 mb-4">Frameworks & Tools</h3>
-              <img 
-                src="https://skillicons.dev/icons?i=anaconda,androidstudio,flutter,react,laravel,nodejs" 
-                alt="Frameworks and Tools"
-                className="w-full"
-              />
-            </div>
-            <div>
-              <h3 className="text-xl font-medium text-gray-800 mb-4">Development Tools</h3>
-              <img 
-                src="https://skillicons.dev/icons?i=aws,figma,firebase,git,github,gradle,idea,maven,postman,vscode" 
-                alt="Development Tools"
-                className="w-full"
-              />
-            </div>
-            <div>
-              <h3 className="text-xl font-medium text-gray-800 mb-4">Databases</h3>
-              <img 
-                src="https://skillicons.dev/icons?i=mongodb,mysql,postgres" 
-                alt="Databases"
-                className="w-full"
-              />
-            </div>
+            {content.skillGroups.map((group, index) => (
+              group.icons.length > 0 && (
+                <div key={index}>
+                  <h3 className="text-xl font-medium text-gray-800 mb-4">{group.title}</h3>
+                  <img
+                    src={`https://skillicons.dev/icons?i=${group.icons.join(',')}`}
+                    alt={group.title}
+                    className="w-full"
+                  />
+                </div>
+              )
+            ))}
           </div>
         </section>
 
